@@ -7,16 +7,17 @@
 {% block body %}
 <form name="selector" action="/" method="GET">
     <select name="selector" >
-        <option value="0">Sunday</option>
-        <option value="1">Monday</option>
-        <option value="2">Tuesday</option>
-        <option value="3">Wednesday</option>
-        <option value="4">Thursday</option>
-        <option value="5">Friday</option>
-        <option value="6">Saturday</option>
+        {% for day in range(0, 7)%}
+            {% if day == selDay %}
+            <option value={{day}} selected>{{ days[day] }} </option>
+            {% else %}
+            <option value={{day}} >{{ days[day] }} </option>
+            {% endif %}
+        {% endfor %}
       </select> 
 <button type="submit">Day</button>
 </form>
+
 <div class="content">
     <h1 style="text-align: center">Az Thermostat</h1>
     
@@ -46,12 +47,24 @@
         {% endfor %}
     </table>
     {% endif %}
-    <form action="/" method="POST">
-        <input type="number" name="day" id="day">
-        <input type="number" name="hour" id="hour">
-        <input type="number" name="min" id="min">
-        <input type="number" name="temperature" id="temperature">
-        <input type="submit" value="Add Cycle">
-    </form>
+        <form action="/" method="POST">
+            <section>
+                <div>
+                    <input type="number" name="hour" id="hour">
+                    <label for="hour">Hour</label>
+                </div>
+                <div>      
+                    <input type="number" name="min" id="min">
+                    <label for="min">Minutes</label>
+                </div>
+                <div>
+                    <input type="number" name="temperature" id="temperature">
+                    <label for="temperature">Temperature</label>
+                </div>
+        
+                <input type="submit" value="Add Cycle">
+            </section>
+            
+        </form>
 </div>
 {% endblock %}
