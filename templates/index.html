@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>cycleer</title>
+{% endblock %}
+
+{% block body %}
+<form name="selector" action="/" method="GET">
+    <select name="selector" >
+        <option value="0">Sunday</option>
+        <option value="1">Monday</option>
+        <option value="2">Tuesday</option>
+        <option value="3">Wednesday</option>
+        <option value="4">Thursday</option>
+        <option value="5">Friday</option>
+        <option value="6">Saturday</option>
+      </select> 
+<button type="submit">Day</button>
+</form>
+<div class="content">
+    <h1 style="text-align: center">Az Thermostat</h1>
+    
+    {% if cycles|length < 1 %}
+    <h4>There are no cycles. Create one below!</h4>
+    {% else %}
+    <table>
+        <tr>
+            <th>Day</th>
+            <th>Hour</th>
+            <th>Min</th>
+            <th>Temp F</th>
+            <th>Actions</th>
+        </tr>
+        <tr>
+        {% for cycle in cycles %}
+            <td> {{ cycle.d }}</td>
+            <td> {{ cycle.h }}</td>
+            <td> {{ cycle.m }}</td>
+            <td> {{ cycle.t }}</td>
+            <td>
+                <a href="/delete/{{cycle.id}}">Delete</a>
+                <br>
+                <a href="/update/{{cycle.id}}">Update</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+    <form action="/" method="POST">
+        <input type="number" name="day" id="day">
+        <input type="number" name="hour" id="hour">
+        <input type="number" name="min" id="min">
+        <input type="number" name="temperature" id="temperature">
+        <input type="submit" value="Add Cycle">
+    </form>
+</div>
+{% endblock %}
