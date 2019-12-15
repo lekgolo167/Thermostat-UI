@@ -3,6 +3,7 @@
 {% block head %}
 <title>cycleer</title>
 <script src='{{ url_for('static', filename='Chart.js') }}'></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js" type="text/javascript"></script>
 {% endblock %}
 
 {% block body %}
@@ -77,11 +78,12 @@
             // do not resize the chart canvas when its container does (keep at 600x400px)
             Chart.defaults.global.responsive = false;
 
+            function hoursEarlier(hours) {
+  return moment().subtract(hours, 'h').toDate();
+};
             // define the chart data
             var chartData = {
-                labels : [{% for item in labels %}
-                         "{{item}}",
-                        {% endfor %}],
+                labels : [hoursEarlier(10), hoursEarlier(9.4), hoursEarlier(8), hoursEarlier(7), hoursEarlier(6), hoursEarlier(5), hoursEarlier(4)],
               datasets : [{
                   label: '{{ legend }}',
                   fill: true,
@@ -125,22 +127,24 @@
               data: chartData,
               options: {
                       scales: {
+                        xAxis: [{
+                              type: 'time',
+                              distribution: 'linear',
+                              time: {
+                                  unit: 'minute',
+                                  unitStepSize: 1,
+                                  displayFormats: {
+                                    minute: 'h:mm a'
+                                  }
+                              }
+                          }],
                           yAxes: [{
                               ticks: {
                                   min: 55,
                                   max: 80
                               }
                           }],
-                          xAxis: [{
-                              type: 'time',
-                              distribution: 'linear',
-                              time: {
-                                  unit: 'hour',
-                                  displayFormats: {
-                                    hour: 'HH:mm'
-                                  }
-                              }
-                          }]
+                          
                       }
                   },
             });

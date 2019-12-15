@@ -68,6 +68,7 @@ def index():
             print("FAILED")
         cycles = Cycle.query.filter_by(d=selDay).all()
         chartInfo = chart(cycles)
+        print(str(chartInfo[1][1]))
         return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, values=chartInfo[0], labels=chartInfo[1], legend='Hourly Set Temperatrue')
 
 @app.route('/day', methods=['GET'])
