@@ -63,15 +63,12 @@ def index():
         
     else:
         try:
-            z = int(request.args.get('selector'))
-            print('we did it' +str(z))
-            selDay = z
+            selDay = int(request.args.get('selector'))
         except:
             print("FAILED")
-        print('\n\n selday {}'.format(selDay))
         cycles = Cycle.query.filter_by(d=selDay).all()
-        print(cycles)
-        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay)
+        chartInfo = chart(cycles)
+        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, values=chartInfo[0], labels=chartInfo[1], legend='Hourly Set Temperatrue')
 
 @app.route('/day', methods=['GET'])
 def day():
@@ -99,11 +96,8 @@ def update(id):
     else:
         return render_template("update.html", task=cycle)
 
-@app.route('/chart/<int:day>')
-def chart(day):
-    legend = 'Monthly Data'
-    # selDay
-    cycles = Cycle.query.filter_by(d=day).all()
+def chart(cycles):
+    
     tempAndTime = []
     
     for cycle in cycles:
@@ -111,11 +105,8 @@ def chart(day):
 
     tempAndTime.sort(key=lambda x: x[1])
     i = len(cycles)-1
-    print(cycles[i])
     tempAndTime.append((tempAndTime[i][0],time(hour=23,minute=59)))
-    
-    print([cycle[1] for cycle in tempAndTime])
-    return render_template('chart.html', values=[cycle[0] for cycle in tempAndTime], labels=[cycle[1] for cycle in tempAndTime], legend=legend)
+    return [[cycle[0] for cycle in tempAndTime], [cycle[1] for cycle in tempAndTime]]
 
 
 @app.route('/delete/<int:id>')

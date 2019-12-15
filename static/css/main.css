@@ -8,6 +8,11 @@ body, html {
     width: 400px;
 }
 
+.column {
+    float: left;
+    width: 50%;
+  }
+
 table, td, th {
     border: 1px solid #aaa;
 }
