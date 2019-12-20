@@ -2,8 +2,9 @@
 
 {% block head %}
 <title>cycleer</title>
-<script src='{{ url_for('static', filename='Chart.js') }}'></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.7.0/moment.min.js" type="text/javascript"></script>
+<script src='{{ url_for('static', filename='Chart.js') }}'></script>
+
 {% endblock %}
 
 {% block body %}
@@ -78,12 +79,13 @@
             // do not resize the chart canvas when its container does (keep at 600x400px)
             Chart.defaults.global.responsive = false;
 
-            function hoursEarlier(hours) {
-  return moment().subtract(hours, 'h').toDate();
-};
             // define the chart data
             var chartData = {
-                labels : [hoursEarlier(10), hoursEarlier(9.4), hoursEarlier(8), hoursEarlier(7), hoursEarlier(6), hoursEarlier(5), hoursEarlier(4)],
+                labels : [
+                    {% for hr, min in times %}
+                        moment().hours({{hr}}).minutes({{min}}).valueOf(),
+                    {% endfor %}
+                ],
               datasets : [{
                   label: '{{ legend }}',
                   fill: true,
@@ -105,12 +107,10 @@
                   pointRadius: 1,
                   pointHitRadius: 10,
                   data : [
-                      {% for item in values %}
-                      {
-                        y:{{item}},
-                      },    
-                          {% endfor %}
-                        ],
+                        {% for item in values %}
+                            {{item}},
+                        {% endfor %}
+                    ],
                           
                   spanGaps: true
               }],
@@ -120,33 +120,49 @@
              
             // get chart canvas
             var ctx = document.getElementById("myChart").getContext("2d");
-             
+            var chartOptions = {
+      legend: {
+        display: true,
+        position: 'top',
+        labels: {
+          boxWidth: 80,
+          fontColor: 'black'
+        }
+      },
+      scales: {
+        xAxes: [{
+          type: "time",
+          time: {
+            unit: 'hour',
+            unitStepSize: 0.5,
+            tooltipFormat: "h:mm a",
+            displayFormats: {
+              hour: 'h:mm A'
+            }
+          }
+        }],
+        yAxes: [{
+            ticks: {
+                min:55,
+                max: 85
+            },
+          gridLines: {
+            color: "black",
+            borderDash: [2, 5],
+          },
+          scaleLabel: {
+            display: true,
+            labelString: "Temperatre F'",
+            fontColor: "blue"
+          }
+        }]
+      }
+    };
             // create the chart using the chart canvas
             var myChart = new Chart(ctx, {
               type: 'line',
               data: chartData,
-              options: {
-                      scales: {
-                        xAxis: [{
-                              type: 'time',
-                              distribution: 'linear',
-                              time: {
-                                  unit: 'minute',
-                                  unitStepSize: 1,
-                                  displayFormats: {
-                                    minute: 'h:mm a'
-                                  }
-                              }
-                          }],
-                          yAxes: [{
-                              ticks: {
-                                  min: 55,
-                                  max: 80
-                              }
-                          }],
-                          
-                      }
-                  },
+              options: chartOptions
             });
             </script>
     </div>

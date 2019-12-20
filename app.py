@@ -67,9 +67,13 @@ def index():
         except:
             print("FAILED")
         cycles = Cycle.query.filter_by(d=selDay).all()
+        times = []
+        for cycle in cycles:
+            times.append([cycle.h, cycle.m])
+        times.append([23,59])
         chartInfo = chart(cycles)
         print(str(chartInfo[1][1]))
-        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, values=chartInfo[0], labels=chartInfo[1], legend='Hourly Set Temperatrue')
+        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, values=chartInfo[0], labels=chartInfo[1], legend='Hourly Set Temperatrue', times=times)
 
 @app.route('/day', methods=['GET'])
 def day():
