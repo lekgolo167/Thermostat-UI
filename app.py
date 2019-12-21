@@ -116,7 +116,7 @@ def update(id):
     if request.method == 'POST':
         cycle.h = request.form['hour']
         cycle.m = request.form['min']
-        cycle.t = request.form['temp']
+        cycle.t = request.form['temperature']
 
         try:
             db.session.commit()
@@ -124,7 +124,7 @@ def update(id):
         except:
             return 'Faile to update cycle'
     else:
-        return render_template("update.html", task=cycle)
+        return render_template("update.html", cycle=cycle)
 
 
 @app.route('/delete/<int:id>')
