@@ -82,12 +82,12 @@
             // define the chart data
             var chartData = {
                 labels : [
-                    {% for hr, min in times %}
-                        moment().hours({{hr}}).minutes({{min}}).valueOf(),
+                    {% for cycle in cycles %}
+                        moment().hours({{cycle.h}}).minutes({{cycle.m}}).valueOf(),
                     {% endfor %}
                 ],
               datasets : [{
-                  label: '{{ legend }}',
+                  label: 'Temperature',
                   fill: true,
                   lineTension: 0.1,
                   steppedLine: true,
@@ -107,8 +107,8 @@
                   pointRadius: 1,
                   pointHitRadius: 10,
                   data : [
-                        {% for item in values %}
-                            {{item}},
+                        {% for cycle in cycles %}
+                            {{cycle.t}},
                         {% endfor %}
                     ],
                           

@@ -29,7 +29,9 @@ def db_seed():
     for day in range(0, 7):
         cycle = Cycle(d=day,h=0, m=0,t=60.0)
         db.session.add(cycle)
-        print(cycle)
+
+    dayIDs = DayIDs(sun=1,mon=1,tue=1,wed=1,thu=1,fri=1,sat=1)
+    db.session.add(dayIDs)
 
     db.session.commit()
     print('Database seeded!')
@@ -44,44 +46,67 @@ class Cycle(db.Model):
     def __repr__(self):
         return str(self.d) + ' -> h:' + str(self.h) + ':' + str(self.m) + ', @%.1fF°' % self.t
 
+class DayIDs(db.Model):
+    id = Column(Integer, primary_key=True)
+    sun = Column(Integer)
+    mon = Column(Integer)
+    tue = Column(Integer)
+    wed = Column(Integer)
+    thu = Column(Integer)
+    fri = Column(Integer)
+    sat = Column(Integer)
+
+    def __repr__(self):
+        return "0:{},1:{},2:{},3:{},4:{},5{},6{}".format(self.sun,self.mon,self.tue,self.wed,self.thu,self.fri,self.sat)
+
+class CyclesSchema(ma.Schema):
+    class Meta:
+        fields = ('id','h','m','t')
+
+class DayIDsSchema(ma.Schema):
+    class Meta:
+        fields = ('sun','mon','tue','wed','thu','fri','sat')
+
+cycles_schema = CyclesSchema(many=True)
+dayIDs_schema = DayIDsSchema()
+
 @app.route('/', methods=['POST', 'GET'])
 def index():
     global selDay
     if request.method == 'POST':
-        d = selDay
+        updateDayIDs(selDay)
         h = int(request.form['hour'])
         m = int(request.form['min'])
         t = float(request.form['temperature'])
-        new_cycle = Cycle(d=d,h=h,m=m,t=t)
+        new_cycle = Cycle(d=selDay,h=h,m=m,t=t)
         print(new_cycle)
         try:
             db.session.add(new_cycle)
             db.session.commit()
             return redirect('/')
         except:
-            return 'Could not add task to database'
+            return 'Could not add cycle to database'
         
     else:
         try:
             selDay = int(request.args.get('selector'))
         except:
-            print("FAILED")
+            pass
         cycles = Cycle.query.filter_by(d=selDay).all()
-        times = []
-        for cycle in cycles:
-            times.append([cycle.h, cycle.m])
-        times.append([23,59])
-        chartInfo = chart(cycles)
-        print(str(chartInfo[1][1]))
-        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, values=chartInfo[0], labels=chartInfo[1], legend='Hourly Set Temperatrue', times=times)
+        cycles = sort(cycles)
+        cycles.append(Cycle(d=selDay,h=23,m=59,t=60.0))
+        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay)
 
-@app.route('/day', methods=['GET'])
-def day():
-    global selDay
-    print('-------------------------------------\n\n')
-    selDay = int(request.args.get('selector'))
-    print(selDay)
-    return redirect('/')
+@app.route('/getCycles/<int:day>', methods=['GET'])
+def getCycles(day):
+    cycles = Cycle.query.filter_by(d=day).all()
+    return jsonify(cycles_schema.dump(cycles))
+
+
+@app.route('/getDayIDs', methods=['GET'])
+def getDayIDs():
+    dayIDs = DayIDs.query.one()
+    return jsonify(dayIDs_schema.dump(dayIDs))
 
 
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
@@ -101,18 +126,6 @@ def update(id):
     else:
         return render_template("update.html", task=cycle)
 
-def chart(cycles):
-    
-    tempAndTime = []
-    
-    for cycle in cycles:
-        tempAndTime.append((cycle.t,time(hour=cycle.h, minute=cycle.m)))
-
-    tempAndTime.sort(key=lambda x: x[1])
-    i = len(cycles)-1
-    tempAndTime.append((tempAndTime[i][0],time(hour=23,minute=59)))
-    return [[cycle[0] for cycle in tempAndTime], [cycle[1] for cycle in tempAndTime]]
-
 
 @app.route('/delete/<int:id>')
 def delete(id):
@@ -123,7 +136,33 @@ def delete(id):
         db.session.commit()
         return redirect('/')
     except:
-        return 'Could not delete task'
+        return 'Could not delete cycle'
+
+
+def sort(cycles):
+    cycles.sort(key=lambda x: time(hour=x.h,minute=x.m))
+
+    return cycles
+
+def updateDayIDs(day):
+    dayIDs = DayIDs.query.one()
+
+    if day == 0:
+        dayIDs.sun += 1
+    elif day == 1:
+        dayIDs.mon += 1
+    elif day == 2:
+        dayIDs.tue += 1
+    elif day == 3:
+        dayIDs.wed += 1
+    elif day == 4:
+        dayIDs.thu += 1
+    elif day == 5:
+        dayIDs.fri += 1
+    elif day == 6:
+        dayIDs.sat += 1
+
+    db.session.commit()
 
 
 if __name__ == "__main__":
