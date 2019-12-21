@@ -119,6 +119,7 @@ def update(id):
         cycle.t = request.form['temperature']
 
         try:
+            updateDayIDs(cycle.d)
             db.session.commit()
             return redirect('/')
         except:
@@ -132,6 +133,7 @@ def delete(id):
     cycle = Cycle.query.get_or_404(id)
 
     try:
+        updateDayIDs(cycle.d)
         db.session.delete(cycle)
         db.session.commit()
         return redirect('/')
