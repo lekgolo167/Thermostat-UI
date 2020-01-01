@@ -99,8 +99,8 @@ def index():
 
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
-    cycles = Cycle.query.filter_by(d=day).all()
-    return jsonify(cycles_schema.dump(cycles))
+    cycles = sort(Cycle.query.filter_by(d=day).all())
+    return jsonify(cycles=cycles_schema.dump(cycles))
 
 
 @app.route('/getDayIDs', methods=['GET'])
