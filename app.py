@@ -3,6 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, time
 from flask_marshmallow import Marshmallow
 from sqlalchemy import Column, Integer, String, Float, DateTime
+import time as cTime
+
+from model import calulateModel
+from weather import getWeatherData
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///schedule.db'
@@ -12,6 +16,8 @@ ma = Marshmallow(app)
 
 DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 selDay = 0
+lastUpdatedWeather = 0;
+outsideTemperatures = []
 
 @app.cli.command('db_create')
 def db_create():
@@ -95,7 +101,10 @@ def index():
         cycles = Cycle.query.filter_by(d=selDay).all()
         cycles = sort(cycles)
         cycles.append(Cycle(d=selDay,h=23,m=59,t=60.0))
-        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay)
+        
+        sched, furn, outside = generatePredictiveModel(cycles)
+
+        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, sched=sched , furn=furn , outside=outside)
 
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
@@ -165,6 +174,40 @@ def updateDayIDs(day):
         dayIDs.sat += 1
 
     db.session.commit()
+
+def generatePredictiveModel(cycles):
+    global lastUpdatedWeather, outsideTemperatures
+    sched = []
+    furn = []
+    outside = []
+    simSched = []
+
+    if lastUpdatedWeather < int(cTime.time()) - 86400:
+        print("UPDATING TEMPERATURE DATA FROM FORCAST SERVER")
+        lastUpdatedWeather = int(cTime.time())
+        outsideTemperatures = getWeatherData()
+
+    for hr in range(0,24):
+        outside.append(((int(datetime(2020,1,1,hr,0,0).timestamp() * 1000.0), outsideTemperatures[hr])))
+
+
+    for cycle in cycles:
+        sched.append((int(datetime(2020,1,1,cycle.h,cycle.m,0).timestamp() * 1000.0), cycle.t))
+        hr = cycle.h + (cycle.m / 60)
+        simSched.append((hr, cycle.t))
+    
+    simInsideTemps = calulateModel(simSched, outsideTemperatures)
+
+    for inside, hr in simInsideTemps:
+        h = int(hr)
+        m = int((hr - h)*60)
+
+        furn.append((int(datetime(2020,1,1,h,m,0).timestamp() * 1000.0), inside))
+
+    
+    return sched, furn, outside
+
+    
 
 
 if __name__ == "__main__":

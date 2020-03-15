@@ -1,9 +1,1 @@
-https://www.chartjs.org/samples/latest/
-
-https://stackoverflow.com/questions/46022383/how-to-feed-hour-and-minute-data-into-chartjs
-
-https://www.chartjs.org/docs/latest/axes/cartesian/time.html
-
-https://code.tutsplus.com/tutorials/getting-started-with-chartjs-scales--cms-28477
-
-hour: 'MMM D, h:mm A'
+https://canvasjs.com/javascript-charts/
