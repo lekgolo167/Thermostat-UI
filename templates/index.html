@@ -11,17 +11,20 @@
       text: "Schedule and Predicted Furnace Response"
     },
     axisX: {
-      valueFormatString: "hh:mm TT"
+      valueFormatString: "hh:mm TT",
+      crosshair:{
+        enabled: true,
+        snapToDataPoint: true
+      }
     },
     axisY: {
       title: "Temperature",
       suffix: "°F",
-      maximum: 85.0,
-      minimum: 20.0,
+      includeZero: false,
       valueFormatString: "#.0"
     },
     toolTip: {
-      shared: true,
+      shared: false,
       
     },
     legend: {
@@ -33,6 +36,7 @@
     },
     data: [{
       type:"stepArea",
+      fillOpacity: 0.3,
       xValueType: "dateTime",
       xValueFormatString: "hh:mm TT",
       name: "Schedule",
@@ -49,7 +53,7 @@
       type: "line",
       xValueType: "dateTime",
       xValueFormatString: "hh:mm TT",
-      name: "Temperature",
+      name: "Inside",
       showInLegend: true,
       markerSize: 0,
       yValueFormatString: "#.0F°",
@@ -105,7 +109,7 @@
 </form>
 
 <div class="row">
-    <div class="column">
+    <div class="column" style="width: 30%;">
             <h1 style="text-align: center">Az Thermostat</h1>
     
             {% if cycles|length < 1 %}
@@ -154,11 +158,9 @@
                     
                 </form>
     </div>
-    <div class="column">
-      <canvas id="myChart" width="600" height="400"></canvas>
-      <p id="caption">The schedule for the day</p>
-
+    <div class="column" style="width: 70%;">
       <div id="chartContainer" style="height: 370px; width: 100%;"></div>
+      <h2 style="text-align: center">Predicted Runtime: {{"%.2f"|format(runtime)}} Hrs.</h2>
       <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
     </div>
 </div>

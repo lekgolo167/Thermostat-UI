@@ -1,10 +1,9 @@
 #/usr/bin/python
 import math
-from matplotlib import pyplot as plt
 
 time = 0.0
 deltaTime = 0.01
-BTU = 40.0
+BTU = 45.0
 heating = False
 thresh = 2.0
 runtime = 0.0
@@ -23,16 +22,11 @@ def calulateModel(s,t):
   x2 = 65.0
   outsideTemperature = t
   sched = s
-
-  #T = []
-  #x = []
   data = []
 
 
   while time < 23.9:
-    #T.append(outsideTemperature[int(time)])
     data.append((x1, time))
-    #x.append(time)
 
     dx1 = k1*(outsideTemperature[int(time)] - x1) + k2*(x2 - x1) + H(x1, time)
     dx2 = k2*(x1 - x2) + k3*(outsideTemperature[int(time)] - x2)
@@ -47,10 +41,7 @@ def calulateModel(s,t):
 
     time += deltaTime
 
-  print(runtime)
-  return data
-  #plt.plot(x, T, x, y1, x, goal)
-  #plt.show()
+  return data, runtime
 
 
 def findSCH(time):

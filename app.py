@@ -16,8 +16,11 @@ ma = Marshmallow(app)
 
 DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 selDay = 0
-lastUpdatedWeather = 0;
+lastUpdatedWeather = 0
 outsideTemperatures = []
+cachedInsideTemperatures = [ [], [], [], [], [], [], [] ]
+cachedRuntimes = [ -1, -1, -1, -1, -1, -1, -1 ]
+cachedDays = [ False, False, False, False, False, False, False ]
 
 @app.cli.command('db_create')
 def db_create():
@@ -89,6 +92,7 @@ def index():
         try:
             db.session.add(new_cycle)
             db.session.commit()
+            cachedDays[selDay] = False
             return redirect('/')
         except:
             return 'Could not add cycle to database'
@@ -102,9 +106,9 @@ def index():
         cycles = sort(cycles)
         cycles.append(Cycle(d=selDay,h=23,m=59,t=60.0))
         
-        sched, furn, outside = generatePredictiveModel(cycles)
+        sched, furn, outside, runtime = generatePredictiveModel(cycles)
 
-        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, sched=sched , furn=furn , outside=outside)
+        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, sched=sched , furn=furn , outside=outside, runtime=runtime)
 
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
@@ -130,6 +134,7 @@ def update(id):
         try:
             updateDayIDs(cycle.d)
             db.session.commit()
+            cachedDays[selDay] = False
             return redirect('/')
         except:
             return 'Faile to update cycle'
@@ -145,6 +150,7 @@ def delete(id):
         updateDayIDs(cycle.d)
         db.session.delete(cycle)
         db.session.commit()
+        cachedDays[selDay] = False
         return redirect('/')
     except:
         return 'Could not delete cycle'
@@ -176,7 +182,7 @@ def updateDayIDs(day):
     db.session.commit()
 
 def generatePredictiveModel(cycles):
-    global lastUpdatedWeather, outsideTemperatures
+    global lastUpdatedWeather, outsideTemperatures, selDay, cachedRuntimes
     sched = []
     furn = []
     outside = []
@@ -196,16 +202,20 @@ def generatePredictiveModel(cycles):
         hr = cycle.h + (cycle.m / 60)
         simSched.append((hr, cycle.t))
     
-    simInsideTemps = calulateModel(simSched, outsideTemperatures)
+    if not cachedDays[selDay]:
+        print("RECALCULATING SIM INSIDE TEMPS")
+        cachedInsideTemperatures[selDay] = []
+        cachedDays[selDay] = True
+        simInsideTemps, cachedRuntimes[selDay] = calulateModel(simSched, outsideTemperatures)
 
-    for inside, hr in simInsideTemps:
-        h = int(hr)
-        m = int((hr - h)*60)
+        for inside, hr in simInsideTemps:
+            h = int(hr)
+            m = int((hr - h)*60)
 
-        furn.append((int(datetime(2020,1,1,h,m,0).timestamp() * 1000.0), inside))
+            cachedInsideTemperatures[selDay].append((int(datetime(2020,1,1,h,m,0).timestamp() * 1000.0), inside))
 
     
-    return sched, furn, outside
+    return sched, cachedInsideTemperatures[selDay], outside, cachedRuntimes[selDay]
 
     
 
