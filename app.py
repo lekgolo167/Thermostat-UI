@@ -18,6 +18,7 @@ DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satur
 selDay = 0
 lastUpdatedWeather = 0
 outsideTemperatures = []
+UVIndex = []
 cachedInsideTemperatures = [ [], [], [], [], [], [], [] ]
 cachedRuntimes = [ -1, -1, -1, -1, -1, -1, -1 ]
 cachedDays = [ False, False, False, False, False, False, False ]
@@ -182,16 +183,20 @@ def updateDayIDs(day):
     db.session.commit()
 
 def generatePredictiveModel(cycles):
-    global lastUpdatedWeather, outsideTemperatures, selDay, cachedRuntimes
+    global lastUpdatedWeather, outsideTemperatures, selDay, cachedRuntimes, UVIndex
     sched = []
     furn = []
+
     outside = []
     simSched = []
+
 
     if lastUpdatedWeather < int(cTime.time()) - 86400:
         print("UPDATING TEMPERATURE DATA FROM FORCAST SERVER")
         lastUpdatedWeather = int(cTime.time())
-        outsideTemperatures = getWeatherData()
+        outsideTemperatures, UVIndex = getWeatherData()
+        for i in range(len(cachedDays)):
+            cachedDays[i] = False
 
     for hr in range(0,24):
         outside.append(((int(datetime(2020,1,1,hr,0,0).timestamp() * 1000.0), outsideTemperatures[hr])))
@@ -206,7 +211,8 @@ def generatePredictiveModel(cycles):
         print("RECALCULATING SIM INSIDE TEMPS")
         cachedInsideTemperatures[selDay] = []
         cachedDays[selDay] = True
-        simInsideTemps, cachedRuntimes[selDay] = calulateModel(simSched, outsideTemperatures)
+        
+        simInsideTemps, cachedRuntimes[selDay] = calulateModel(simSched, outsideTemperatures, UVIndex)
 
         for inside, hr in simInsideTemps:
             h = int(hr)
