@@ -1,6 +1,6 @@
 from flask import Flask, render_template, url_for, jsonify, request, redirect
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, time
+from datetime import datetime, time, date
 from flask_marshmallow import Marshmallow
 from sqlalchemy import Column, Integer, String, Float, DateTime
 import time as cTime
@@ -17,6 +17,8 @@ ma = Marshmallow(app)
 DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 selDay = 0
 lastUpdatedWeather = 0
+today = date.today().strftime('%Y-%m-%d')
+updatedToday = False
 outsideTemperatures = []
 UVIndex = []
 cachedInsideTemperatures = [ [], [], [], [], [], [], [] ]
@@ -80,9 +82,11 @@ class DayIDsSchema(ma.Schema):
 cycles_schema = CyclesSchema(many=True)
 dayIDs_schema = DayIDsSchema()
 
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/', methods=['POST', 'GET', 'PUT'])
 def index():
-    global selDay
+    global selDay, today
+    print("METHOD: " + str(request.method))
+    
     if request.method == 'POST':
         updateDayIDs(selDay)
         h = int(request.form['hour'])
@@ -109,7 +113,7 @@ def index():
         
         sched, furn, outside, runtime = generatePredictiveModel(cycles)
 
-        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, sched=sched , furn=furn , outside=outside, runtime=runtime)
+        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, sched=sched , furn=furn , outside=outside, runtime=runtime, today=today)
 
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
@@ -156,6 +160,14 @@ def delete(id):
     except:
         return 'Could not delete cycle'
 
+@app.route('/setDate', methods=['POST'])
+def setDate():
+    global today, updatedToday
+    updatedToday = True
+    print("IN HERE")
+    today = request.form['datePicker']
+    print(today)
+    return redirect('/')
 
 def sort(cycles):
     cycles.sort(key=lambda x: time(hour=x.h,minute=x.m))
@@ -183,18 +195,18 @@ def updateDayIDs(day):
     db.session.commit()
 
 def generatePredictiveModel(cycles):
-    global lastUpdatedWeather, outsideTemperatures, selDay, cachedRuntimes, UVIndex
+    global lastUpdatedWeather, outsideTemperatures, selDay, cachedRuntimes, UVIndex, updatedToday
     sched = []
-    furn = []
 
     outside = []
     simSched = []
 
 
-    if lastUpdatedWeather < int(cTime.time()) - 86400:
+    if (updatedToday) or (lastUpdatedWeather < int(cTime.time()) - 43200):
         print("UPDATING TEMPERATURE DATA FROM FORCAST SERVER")
         lastUpdatedWeather = int(cTime.time())
-        outsideTemperatures, UVIndex = getWeatherData()
+        updatedToday = False
+        outsideTemperatures, UVIndex = getWeatherData(today)
         for i in range(len(cachedDays)):
             cachedDays[i] = False
 
@@ -227,4 +239,4 @@ def generatePredictiveModel(cycles):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=False, host='0.0.0.0')

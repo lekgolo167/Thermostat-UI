@@ -124,15 +124,15 @@
                     <th>Actions</th>
                 </tr>
                 <tr>
-                {% for cycle in cycles %}
-                    <td> {{ cycle.d }}</td>
-                    <td> {{ cycle.h }}</td>
-                    <td> {{ cycle.m }}</td>
-                    <td> {{ cycle.t }}</td>
+                {% for i in range(cycles|length-1) %}
+                    <td> {{ cycles[i].d }}</td>
+                    <td> {{ cycles[i].h }}</td>
+                    <td> {{ cycles[i].m }}</td>
+                    <td> {{ cycles[i].t }}</td>
                     <td>
-                        <a href="/delete/{{cycle.id}}">Delete</a>
+                        <a href="/delete/{{cycles[i].id}}">Delete</a>
                         <br>
-                        <a href="/update/{{cycle.id}}">Update</a>
+                        <a href="/update/{{cycles[i].id}}">Update</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -161,6 +161,14 @@
     <div class="column" style="width: 70%;">
       <div id="chartContainer" style="height: 370px; width: 100%;"></div>
       <h2 style="text-align: center">Predicted Runtime: {{"%.2f"|format(runtime)}} Hrs.</h2>
+      <label for="simDay">Simulation date:</label>
+
+      <form name="datePicker" action="/setDate" method="POST">
+        <input type="date" id="datePicker" name="datePicker"
+        value="{{today}}""
+        min="" max="">
+        <button type="submit">Date</button>
+      </form>
       <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
     </div>
 </div>
