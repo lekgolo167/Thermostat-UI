@@ -84,7 +84,7 @@ dayIDs_schema = DayIDsSchema()
 
 @app.route('/', methods=['POST', 'GET', 'PUT'])
 def index():
-    global selDay, today
+    global selDay, today, updatedToday
     print("METHOD: " + str(request.method))
     
     if request.method == 'POST':
@@ -103,6 +103,9 @@ def index():
             return 'Could not add cycle to database'
         
     else:
+        if lastUpdatedWeather < int(cTime.time()) - 43200:
+            today = date.today().strftime('%Y-%m-%d')
+            updatedToday = True
         try:
             selDay = int(request.args.get('selector'))
         except:
@@ -202,7 +205,7 @@ def generatePredictiveModel(cycles):
     simSched = []
 
 
-    if (updatedToday) or (lastUpdatedWeather < int(cTime.time()) - 43200):
+    if updatedToday:
         print("UPDATING TEMPERATURE DATA FROM FORCAST SERVER")
         lastUpdatedWeather = int(cTime.time())
         updatedToday = False
