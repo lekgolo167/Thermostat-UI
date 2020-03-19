@@ -26,21 +26,22 @@ def calulateModel(s,outsideTemperature, uvIndex):
   counter = 0
   countUp = 0
   cool = False
-  print(uvIndex)
+
   while time < 23.95:
     data.append((x1, time))
     T = outsideTemperature[int(time)]
-    dx1 = k1*(T - x1) + k2*(x2 - x1) + H(x1, time) + uvIndex[int(time)]*0.55 + S(time,T,x1)
+    dx1 = k1*(T - x1) + k2*(x2 - x1) + H(x1, time) + uvIndex[int(time)]*0.55
     dx2 = k2*(x1 - x2) + k3*(T - x2) + uvIndex[int(time)] *1.45
     
     if not heating:
       dx1 *= deltaTime * 0.17
     else:
       countUp += 1
+      #0.6
       dx1 *= deltaTime * 0.53
 
-    x1 += dx1
-    x2 += dx2 * deltaTime
+    x1 += dx1 + 0.0005*(72-x1)
+    x2 += dx2 * deltaTime + 0.0005*(69-x2)
 
     if not heating and lastHeating:
       runtime += 0.02
@@ -51,7 +52,7 @@ def calulateModel(s,outsideTemperature, uvIndex):
       counter += 1
       x1 += deltaCool
 
-      if countUp == counter or counter >= 37:
+      if countUp+13 == counter or counter >= 37:
         countUp = 0
         counter = 0
         cool = False
@@ -90,9 +91,3 @@ def H(temp, time):
     heating = False
 
     return 0
-
-def S(time, T, x1):
-  if time > 4.0 and time < 7.5:
-    return 4 * ( (x1-T)/100.0)
-  else:
-    return 0.0

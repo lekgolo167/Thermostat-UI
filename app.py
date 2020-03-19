@@ -85,7 +85,6 @@ dayIDs_schema = DayIDsSchema()
 @app.route('/', methods=['POST', 'GET', 'PUT'])
 def index():
     global selDay, today, updatedToday
-    print("METHOD: " + str(request.method))
     
     if request.method == 'POST':
         updateDayIDs(selDay)
