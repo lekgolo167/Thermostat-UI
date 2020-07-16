@@ -24,6 +24,7 @@ UVIndex = []
 cachedInsideTemperatures = [ [], [], [], [], [], [], [] ]
 cachedRuntimes = [ -1, -1, -1, -1, -1, -1, -1 ]
 cachedDays = [ False, False, False, False, False, False, False ]
+startTemp = 71.0
 
 @app.cli.command('db_create')
 def db_create():
@@ -84,7 +85,7 @@ dayIDs_schema = DayIDsSchema()
 
 @app.route('/', methods=['POST', 'GET', 'PUT'])
 def index():
-    global selDay, today, updatedToday
+    global selDay, today, updatedToday, startTemp
     
     if request.method == 'POST':
         updateDayIDs(selDay)
@@ -115,7 +116,7 @@ def index():
         
         sched, furn, outside, runtime = generatePredictiveModel(cycles)
 
-        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, sched=sched , furn=furn , outside=outside, runtime=runtime, today=today)
+        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, sched=sched , furn=furn , outside=outside, runtime=runtime, today=today, startTemp=startTemp)
 
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
@@ -171,6 +172,13 @@ def setDate():
     print(today)
     return redirect('/')
 
+@app.route('/startTemp', methods=['POST'])
+def setStartTemp():
+    global startTemp, cachedDays, selDay
+    startTemp = float(request.form['startTempPicker'])
+    cachedDays[selDay] = False
+    return redirect('/')
+
 def sort(cycles):
     cycles.sort(key=lambda x: time(hour=x.h,minute=x.m))
 
@@ -197,7 +205,7 @@ def updateDayIDs(day):
     db.session.commit()
 
 def generatePredictiveModel(cycles):
-    global lastUpdatedWeather, outsideTemperatures, selDay, cachedRuntimes, UVIndex, updatedToday
+    global lastUpdatedWeather, outsideTemperatures, selDay, cachedRuntimes, UVIndex, updatedToday, startTemp
     sched = []
 
     outside = []
@@ -226,7 +234,7 @@ def generatePredictiveModel(cycles):
         cachedInsideTemperatures[selDay] = []
         cachedDays[selDay] = True
         
-        simInsideTemps, cachedRuntimes[selDay] = calulateModel(simSched, outsideTemperatures, UVIndex)
+        simInsideTemps, cachedRuntimes[selDay] = calulateModel(startTemp, simSched, outsideTemperatures, UVIndex)
 
         for inside, hr in simInsideTemps:
             h = int(hr)

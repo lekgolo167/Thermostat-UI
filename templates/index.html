@@ -165,9 +165,15 @@
 
       <form name="datePicker" action="/setDate" method="POST">
         <input type="date" id="datePicker" name="datePicker"
-        value="{{today}}""
+        value="{{today}}"
         min="" max="">
         <button type="submit">Date</button>
+      </form>
+      <form name="startTempPicker" action="/startTemp" method="POST">
+        <input type="number" id="startTempPicker" name="startTempPicker"
+        value="{{startTemp}}"
+        min="" max="">
+        <button type="submit">Set</button>
       </form>
       <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
     </div>

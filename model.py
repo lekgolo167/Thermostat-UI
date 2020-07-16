@@ -10,7 +10,7 @@ runtime = 0.0
 sched = []
 goal = []
 
-def calulateModel(s,outsideTemperature, uvIndex):
+def calulateModel(startTemp, s,outsideTemperature, uvIndex):
   global time, heating, runtime, sched
   runtime = 0.0
   time = 0.0
@@ -18,8 +18,8 @@ def calulateModel(s,outsideTemperature, uvIndex):
   k1 = 0.16 # wall
   k2 = 0.45 # cieling
   k3 = 0.12 # roof
-  x1 = 71.0
-  x2 = 65.0
+  x1 = startTemp
+  x2 = startTemp - 6.0
   sched = s
   data = []
   lastHeating = heating
