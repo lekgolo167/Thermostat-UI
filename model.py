@@ -3,7 +3,7 @@ import math
 
 time = 0.0
 deltaTime = 0.01
-BTU = 55.0
+BTU = 45.0
 heating = False
 thresh = 2.0
 runtime = 0.0
@@ -15,26 +15,34 @@ def calulateModel(startTemp, s,outsideTemperature, uvIndex):
   runtime = 0.0
   time = 0.0
   heating = False
-  k1 = 0.16 # wall
-  k2 = 0.45 # cieling
+  k1 = 0.15 # wall
+  k2 = 0.42 # cieling
   k3 = 0.12 # roof
   x1 = startTemp
-  x2 = startTemp - 6.0
+  x2 = startTemp - 4.0
   sched = s
   data = []
+  penalty = [findSCH(0.0) for x in range(0,200)]
   lastHeating = heating
   counter = 0
   countUp = 0
   cool = False
 
   while time < 23.95:
+
+    penalty = penalty[-1:] + penalty[:-1]
+    sch = findSCH(time)
+    penalty[0] = sch
+    pen = (sum(penalty)/200 - sch) * deltaTime
+
     data.append((x1, time))
     T = outsideTemperature[int(time)]
-    dx1 = k1*(T - x1) + k2*(x2 - x1) + H(x1, time) + uvIndex[int(time)]*0.55
-    dx2 = k2*(x1 - x2) + k3*(T - x2) + uvIndex[int(time)] *1.45
+    dx1 = k1*(T - x1) + k2*(x2 - x1) + H(x1, time) + uvIndex[int(time)]*0.50
+    dx2 = k2*(x1 - x2) + k3*(T - x2) + uvIndex[int(time)] *1.30
     
     if not heating:
       dx1 *= deltaTime * 0.17
+      dx1 += pen
     else:
       countUp += 1
       #0.6
@@ -48,7 +56,7 @@ def calulateModel(startTemp, s,outsideTemperature, uvIndex):
       cool = True
 
     if cool:
-      deltaCool = (outsideTemperature[int(time)] - x1) * 0.00257
+      deltaCool = (outsideTemperature[int(time)] - x1) * 0.00157
       counter += 1
       x1 += deltaCool
 
