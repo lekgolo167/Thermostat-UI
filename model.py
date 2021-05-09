@@ -3,7 +3,7 @@ import math
 
 time = 0.0
 deltaTime = 0.01
-BTU = 45.0
+BTU = 50.0
 heating = False
 thresh = 2.0
 runtime = 0.0
@@ -15,14 +15,14 @@ def calulateModel(startTemp, s,outsideTemperature, uvIndex):
   runtime = 0.0
   time = 0.0
   heating = False
-  k1 = 0.15 # wall
-  k2 = 0.42 # cieling
-  k3 = 0.12 # roof
+  k1 = 0.17 # wall
+  k2 = 0.44 # cieling
+  k3 = 0.14 # roof
   x1 = startTemp
   x2 = startTemp - 4.0
   sched = s
   data = []
-  penalty = [findSCH(0.0) for x in range(0,200)]
+  penalty = [x1 - x*0.07 for x in range(0,250)]
   lastHeating = heating
   counter = 0
   countUp = 0
@@ -31,9 +31,9 @@ def calulateModel(startTemp, s,outsideTemperature, uvIndex):
   while time < 23.95:
 
     penalty = penalty[-1:] + penalty[:-1]
-    sch = findSCH(time)
-    penalty[0] = sch
-    pen = (sum(penalty)/200 - sch) * deltaTime
+    
+    penalty[0] = x1
+    pen = (sum(penalty)/250 - x1) * deltaTime
 
     data.append((x1, time))
     T = outsideTemperature[int(time)]
