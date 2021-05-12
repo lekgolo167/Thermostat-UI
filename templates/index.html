@@ -95,68 +95,98 @@
 {% endblock %}
 
 {% block body %}
-<form name="selector" action="/" method="GET">
-    <select name="selector" >
-        {% for day in range(0, 7)%}
-            {% if day == selDay %}
-            <option value={{day}} selected>{{ days[day] }} </option>
-            {% else %}
-            <option value={{day}} >{{ days[day] }} </option>
-            {% endif %}
-        {% endfor %}
-      </select> 
-<button type="submit">Day</button>
-</form>
+
+  <div class="neu-container">
+  <div class="neu">
+    <div class="row">
+    {% for day in range(0, 7)%}
+    <div class="column">
+    {% if day == selDay %}
+    <input  type="checkbox" id={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}" checked>
+    {% else %}
+    <input type="checkbox" id={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}">
+    {% endif %}
+  </div>
+  {% endfor %}
+  </div>
+  </div>
+  </div>
+
+
+
+
 
 <div class="container">
-    <div>
-            <h1 style="text-align: center">Az Thermostat</h1>
-    
-            {% if cycles|length < 1 %}
+    <div class="neu-container">
+            <h1 style="text-align: top">Az Thermostat</h1>
+  
+            <div class="neu">
+              <div class="neu-inset">
+                <output for="temp-slider" id="set-temp">70</output>
+              </div>
+              <div style="padding: 10px; margin-bottom: 10px">
+                <input type="range" class="neu-range" id="temp-slider" min="50" max="90" value="70" oninput="updateSlider(this.value)">
+              <div id="temp-line" class="bar">
+                <div class="line" ></div>
+              </div>
+                </div>
+              
+
+              <div align="center">
+                <input type="text" id="demoB1" hidden="true"/>
+              <div id="demoB2">
+              </div>
+              <button class="neu-btn" style="color: gray" onclick="updateCycle(0)">Add</button>
+                </div>
+            </div>
+            <div class="neu">
+              <!-- <label for="fader">Volume</label>
+              <input type="range" min="0" max="100" value="50" id="fader" step="20" list="volsettings" oninput="outputUpdate(value)">
+              <div class="neu-inset">
+                <output for="fader" id="volume">50</output>
+              </div>
+              <datalist id="volsettings">
+                <option>0</option>
+                <option>20</option>
+                <option>40</option>
+                <option>60</option>
+                <option>80</option>
+                <option>100</option>
+              </datalist>
+              <button class="neu-btn" onclick="window.location.href=''">Add</button> -->
+            </div>
+
+            <div class="neu">
+              {% if cycles|length < 1 %}
             <h4>There are no cycles. Create one below!</h4>
             {% else %}
-            <table>
-                <tr>
-                    <th>Day</th>
-                    <th>Hour</th>
-                    <th>Min</th>
-                    <th>Temp F</th>
-                    <th>Actions</th>
-                </tr>
-                <tr>
-                {% for i in range(cycles|length-1) %}
-                    <td> {{ cycles[i].d }}</td>
-                    <td> {{ cycles[i].h }}</td>
-                    <td> {{ cycles[i].m }}</td>
-                    <td> {{ cycles[i].t }}</td>
-                    <td>
-                        <a href="/delete/{{cycles[i].id}}">Delete</a>
-                        <br>
-                        <a href="/update/{{cycles[i].id}}">Update</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
+
+            {% for i in range(cycles|length-1) %}
+            <div class="neu">
+              <div class="row">
+                <div class="column">
+                  <div class="neu-inset">
+                    <label>{{ cycles[i].h }}:{{ cycles[i].m }}</label>
+                  </div>
+                </div>
+                <div class="column">
+                  <div class="neu-inset">
+                    <label>{{ cycles[i].t }}</label>
+                  </div>
+                </div>
+                <div class="column">
+                  <button class="neu-btn" style="background-color: green" onclick="updateCycle({{cycles[i].id}})">Update</button>
+                </div>
+                <div class="column">
+                  <button class="neu-btn" style="background-color: red" onclick="window.location.href='/delete/{{cycles[i].id}}'">Delete</button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+
             {% endif %}
-                <form action="/" method="POST">
-                    <section>
-                        <div>
-                            <input type="number" name="hour" id="hour">
-                            <label for="hour">Hour</label>
-                        </div>
-                        <div>      
-                            <input type="number" name="min" id="min">
-                            <label for="min">Minutes</label>
-                        </div>
-                        <div>
-                            <input type="number" name="temperature" id="temperature">
-                            <label for="temperature">Temperature</label>
-                        </div>
+            </div>
                 
-                        <input type="submit" value="Add Cycle">
-                    </section>
-                    
-                </form>
     </div>
     <div>
       <div id="chartContainer" style="height: 370px; width: 100%;"></div>
@@ -175,7 +205,46 @@
         min="" max="">
         <button type="submit">Set</button>
       </form>
-      <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+      <script>
+        function outputUpdate(vol) {
+          document.querySelector("#volume").value = vol;
+        }
+        function updateSlider(v) {
+          document.querySelector("#set-temp").value = v;
+          v = map(v, 50, 90, 1, 85);
+          console.log(v);
+          document.getElementById("temp-line").style.width = v+"%";
+        }
+        function map(x, in_min, in_max, out_min, out_max) {
+          return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+        }
+        function updateCycle(id) {
+          let degrees = document.getElementById('set-temp').value;
+          let min = Number(document.getElementById('minute').value);
+          let hour =  Number(document.getElementById('hour').value);
+          let ante = document.getElementById('ante').value;
+          if (ante === 'PM') {
+            hour += 12;
+          }
+          else if (hour === 12){
+            hour = 0;
+          }
+          if (id === 0) {
+            window.location.href='/newCycle/'+degrees+'/'+hour+'/'+min
+          }
+          else {
+            window.location.href='/update/'+id+'/'+degrees+'/'+hour+'/'+min
+          }
+        }
+        window.addEventListener("load", function(){
+          tp.attach({
+            target: "demoB1",
+            wrap: "demoB2"
+          });
+        });
+      </script>
+      
     </div>
 </div>
+
 {% endblock %}

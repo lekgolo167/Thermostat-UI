@@ -1,20 +1,15 @@
-body, html {
+body {
+    background-color: #ececec;
     margin: 0;
+    padding: 0;
     font-family: sans-serif;
 }
 
-.content {
-    margin: 0 auto;
-    width: 400px;
-}
-
-.column {
-    float: left;
-    width: 50%;
-  }
-
 table, td, th {
-    border: 1px solid #aaa;
+    /* border: 1px solid #aaa; */
+    border-collapse: collapse;
+    /* width: 100%; */
+    text-align: center;
 }
 
 .container {
@@ -22,30 +17,221 @@ table, td, th {
     grid-template-columns: 1fr 3fr;
   }
   
-  @media (max-width: 800px) {
+@media (max-width: 1100px) {
     .container {
-      grid-template-columns: 1fr;
+        grid-template-columns: 1fr;
     }
-  }
+}
 
-table {
-    border-collapse: collapse;
+input[type="checkbox"]{
+    height: 4rem;
+    width: 8rem;
+    -webkit-appearance: none;
+    box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5),
+    10px 10px 15px rgba(70, 70, 70, 0.12);
+    border-radius: 20%;
+    border: 8px solid #ececec;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+input[type="checkbox"]:after{
+    color: #7a7a7a;
+    font-size: 2rem;   
+}
+#Sunday:after{
+    content: "Sun";
+}
+#Monday:after{
+    content: "Mon";
+}
+#Tuesday:after{
+    content: "Tue";
+}
+#Wednesday:after{
+    content: "Wed";
+}
+#Thursday:after{
+    content: "Thur";
+}
+#Friday:after{
+    content: "Fri";
+}
+#Saturday:after{
+    content: "Sat";
+}
+input[type="checkbox"]:checked{
+    box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5),
+    10px 10px 15px rgba(70, 70, 70, 0.12),
+    inset -10px -10px 15px rgba(255, 255, 255, 0.5), 
+    inset 10px 10px 15px rgba(70, 70, 70, 0.12);
+}
+input[type="checkbox"]:checked:after{
+    color: blue;
+}
+
+.neu-container {
+    margin: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.neu {
+    width: 90%;
+    position: relative;
+    margin: 10px;
+    padding: 10px;
+    box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5),
+    10px 10px 15px rgba(70, 70, 70, 0.12);
+    border-radius: 20px;
+}
+
+.neu-inset {
+    margin: 5px;
+    padding: 5px;
+    text-align: center;
+    box-shadow: inset -10px -10px 15px rgba(255, 255, 255, 0.5),
+    inset 10px 10px 15px rgba(70, 70, 70, 0.12);
+    border-radius: 20px;
+}
+
+.neu-btn {
+    margin: 5px;
+    padding: 5px;
+    font-size: 1em;
+    border: none;
+    outline: none;
+    color: white;
+    border-radius: 20px;
+    box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.9),
+    10px 10px 15px rgba(70, 70, 70, 0.3);
+}
+
+.neu-range {
+    background-color: #ececec;
+    -webkit-appearance: none;
+    height: 10px;
+    width: 100%;
+    border-radius: 50px;
+    outline: none;
+    box-shadow: inset -10px -10px 15px rgba(255, 255, 255, 0.5),
+    inset 10px 10px 15px rgba(70, 70, 70, 0.3);
+}
+
+.neu-range::-webkit-slider-thumb {
+    background-color: #ececec;
+    -webkit-appearance: none;
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+    box-shadow:  -10px -10px 15px rgba(255, 255, 255, 0.5),
+     10px 10px 15px rgba(70, 70, 70, 0.3);
+}
+
+.bar {
+    position: absolute;
+    margin-top: -13px;
+    left: 13px;
+    height: 9px;
+    width: 45%;
+    overflow: hidden;
+}
+
+.line {
+    height: 9px;
+    width: 100%;
+    border-radius: 9px;
+    background: linear-gradient(to right, #185ef0, #30cfd0);
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     width: 100%;
 }
 
-th {
-    height: 30px;
-}
+.column {
+    display: flex;
+    flex-direction: column;
+    flex-basis: 100%;
+    flex: 1;
+  }
 
-td {
+  /* (A) FOR THE POPUP TIME PICKER */
+#tp-pop {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+  }
+  #tp-pop.show {
+    opacity: 1;
+    visibility: visible;
+  }
+   
+  /* (B) TIME PICKER ITSELF */
+  .tp {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 320px;
+    /* background: #2d2d2d;
+    border: 1px solid #000; */
+  }
+  .tp-box > *::selection {
+    background: transparent;
+  }
+  #tp-pop .tp {
+    margin: 50vh auto 0 auto;
+    transform: translateY(-50%);
+  }
+   
+  /* (C) HR + MIN + AM/PM */
+  .tp-box {
+    width: 33%;
+    padding: 0 15px;
     text-align: center;
+    box-sizing: border-box;
+  }
+  .tp-up, .tp-down {
+    font-size: 32px;
+    font-weight: bold;
+    color: #2d2d2d;
+    padding: 10px 0;
+    box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5),
+    10px 10px 15px rgba(70, 70, 70, 0.12);
+    cursor: pointer;
+  }
+  .tp-val {
+    box-sizing: border-box;
+    width: 100%;
+    background: transparent;
+    border: 0;
     padding: 5px;
-}
-
-.form {
-    margin-top: 20px;
-}
-
-#content {
-    width: 70%;
-}
+    text-align: center;
+    font-size: 22px;
+    margin: 5px;
+    /* box-shadow: inset -10px -10px 15px rgba(255, 255, 255, 0.5),
+    inset 10px 10px 15px rgba(70, 70, 70, 0.12);
+    border-radius: 20px; */
+  }
+   
+  /* (D) OK BUTTON */
+  .tp-ok {
+    width: 100%;
+    background: #ce3535;
+    color: #fff;
+    border: 0;
+    padding: 15px 0;
+    margin: 10px;
+    cursor: pointer;
+  }

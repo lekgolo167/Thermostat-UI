@@ -106,10 +106,7 @@ def index():
         if lastUpdatedWeather < int(cTime.time()) - 43200:
             today = date.today().strftime('%Y-%m-%d')
             updatedToday = True
-        try:
-            selDay = int(request.args.get('selector'))
-        except:
-            pass
+
         cycles = Cycle.query.filter_by(d=selDay).all()
         cycles = sort(cycles)
         cycles.append(Cycle(d=selDay,h=23,m=59,t=60.0))
@@ -118,36 +115,52 @@ def index():
 
         return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, sched=sched , furn=furn , outside=outside, runtime=runtime, today=today, startTemp=startTemp)
 
+@app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
+def newCycle(t, h, m):
+
+    updateDayIDs(selDay)
+
+    new_cycle = Cycle(d=selDay,h=h,m=m,t=t)
+    print(new_cycle)
+    try:
+        db.session.add(new_cycle)
+        db.session.commit()
+        cachedDays[selDay] = False
+        return redirect('/')
+    except:
+        return 'Could not add cycle to database'
+
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
     cycles = sort(Cycle.query.filter_by(d=day).all())
     return jsonify(cycles=cycles_schema.dump(cycles))
 
+@app.route('/setDay/<int:day>', methods=['GET'])
+def setDay(day):
+    global selDay
+    selDay = day
+    return redirect('/')
 
 @app.route('/getDayIDs', methods=['GET'])
 def getDayIDs():
     dayIDs = DayIDs.query.one()
     return jsonify(dayIDs_schema.dump(dayIDs))
 
+@app.route('/update/<int:_id>/<int:t>/<int:h>/<int:m>', methods=['GET', 'POST'])
+def update(_id, t, h, m):
+    cycle = Cycle.query.get_or_404(_id)
 
-@app.route('/update/<int:id>', methods=['GET', 'POST'])
-def update(id):
-    cycle = Cycle.query.get_or_404(id)
+    cycle.h = h
+    cycle.m = m
+    cycle.t = t
 
-    if request.method == 'POST':
-        cycle.h = request.form['hour']
-        cycle.m = request.form['min']
-        cycle.t = request.form['temperature']
-
-        try:
-            updateDayIDs(cycle.d)
-            db.session.commit()
-            cachedDays[selDay] = False
-            return redirect('/')
-        except:
-            return 'Faile to update cycle'
-    else:
-        return render_template("update.html", cycle=cycle)
+    try:
+        updateDayIDs(cycle.d)
+        db.session.commit()
+        cachedDays[selDay] = False
+        return redirect('/')
+    except:
+        return 'Faile to update cycle'
 
 
 @app.route('/delete/<int:id>')
@@ -249,4 +262,4 @@ def generatePredictiveModel(cycles):
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0')
