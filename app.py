@@ -7,24 +7,13 @@ import time as cTime
 
 from model import calulateModel
 from weather import getWeatherData
+from cachedController import ChachedDaysController
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///schedule.db'
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
-
-DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-selDay = 0
-lastUpdatedWeather = 0
-today = date.today().strftime('%Y-%m-%d')
-updatedToday = False
-outsideTemperatures = []
-UVIndex = []
-cachedInsideTemperatures = [ [], [], [], [], [], [], [] ]
-cachedRuntimes = [ -1, -1, -1, -1, -1, -1, -1 ]
-cachedDays = [ False, False, False, False, False, False, False ]
-startTemp = 71.0
 
 @app.cli.command('db_create')
 def db_create():
@@ -39,7 +28,7 @@ def db_drop():
 @app.cli.command('db_seed')
 def db_seed():
     
-    for day in range(0, 7):
+    for day in range(0, 8):
         cycle = Cycle(d=day,h=0, m=0,t=60.0)
         db.session.add(cycle)
 
@@ -83,68 +72,68 @@ class DayIDsSchema(ma.Schema):
 cycles_schema = CyclesSchema(many=True)
 dayIDs_schema = DayIDsSchema()
 
-@app.route('/', methods=['POST', 'GET', 'PUT'])
+DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', "Try"]
+
+def sort(cycles):
+    cycles.sort(key=lambda x: time(hour=x.h,minute=x.m))
+
+    return cycles
+
+def get_cycles(day):
+
+    return sort(Cycle.query.filter_by(d=day).all())
+
+days_controller = ChachedDaysController(get_cycles)
+
+
+@app.route('/', methods=['GET'])
 def index():
-    global selDay, today, updatedToday, startTemp
     
-    if request.method == 'POST':
-        updateDayIDs(selDay)
-        h = int(request.form['hour'])
-        m = int(request.form['min'])
-        t = float(request.form['temperature'])
-        new_cycle = Cycle(d=selDay,h=h,m=m,t=t)
-        print(new_cycle)
-        try:
-            db.session.add(new_cycle)
-            db.session.commit()
-            cachedDays[selDay] = False
-            return redirect('/')
-        except:
-            return 'Could not add cycle to database'
-        
-    else:
-        if lastUpdatedWeather < int(cTime.time()) - 43200:
-            today = date.today().strftime('%Y-%m-%d')
-            updatedToday = True
+    days_controller.check_dates()
+    sel_day = days_controller.selected_day
+    
+    cycles = Cycle.query.filter_by(d=sel_day).all()
+    cycles = sort(cycles)
 
-        cycles = Cycle.query.filter_by(d=selDay).all()
-        cycles = sort(cycles)
-        cycles.append(Cycle(d=selDay,h=23,m=59,t=60.0))
-        
-        sched, furn, outside, runtime = generatePredictiveModel(cycles)
+    day = days_controller.get_day()
 
-        return render_template("index.html", cycles=cycles, days=DAYS, selDay=selDay, sched=sched , furn=furn , outside=outside, runtime=runtime, today=today, startTemp=startTemp)
+    return render_template("index.jinja", cycles=cycles, days=DAYS, selDay=sel_day, sched=day.g_schedule,
+                            furn=day.g_inside_temperatures , outside=day.g_outside_temperatures,
+                            runtime=day.runtime, today=day.days_date, startTemp=day.start_temperature)
 
-@app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
-def newCycle(t, h, m):
-
-    updateDayIDs(selDay)
-
-    new_cycle = Cycle(d=selDay,h=h,m=m,t=t)
-    print(new_cycle)
-    try:
-        db.session.add(new_cycle)
-        db.session.commit()
-        cachedDays[selDay] = False
-        return redirect('/')
-    except:
-        return 'Could not add cycle to database'
 
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
+
     cycles = sort(Cycle.query.filter_by(d=day).all())
     return jsonify(cycles=cycles_schema.dump(cycles))
 
 @app.route('/setDay/<int:day>', methods=['GET'])
 def setDay(day):
-    global selDay
-    selDay = day
+
+    days_controller.selected_day = day
     return redirect('/')
 
 @app.route('/getDayIDs', methods=['GET'])
 def getDayIDs():
+
     dayIDs = DayIDs.query.one()
     return jsonify(dayIDs_schema.dump(dayIDs))
+
+@app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
+def newCycle(t, h, m):
+    sel_day = days_controller.selected_day
+    updateDayIDs(sel_day)
+
+    new_cycle = Cycle(d=sel_day,h=h,m=m,t=t)
+    print(new_cycle)
+    try:
+        db.session.add(new_cycle)
+        db.session.commit()
+        update_simulation()
+        return redirect('/')
+    except:
+        return 'Could not add cycle to database'
 
 @app.route('/update/<int:_id>/<int:t>/<int:h>/<int:m>', methods=['GET', 'POST'])
 def update(_id, t, h, m):
@@ -157,7 +146,7 @@ def update(_id, t, h, m):
     try:
         updateDayIDs(cycle.d)
         db.session.commit()
-        cachedDays[selDay] = False
+        update_simulation()
         return redirect('/')
     except:
         return 'Faile to update cycle'
@@ -171,31 +160,25 @@ def delete(id):
         updateDayIDs(cycle.d)
         db.session.delete(cycle)
         db.session.commit()
-        cachedDays[selDay] = False
+        update_simulation()
         return redirect('/')
     except:
         return 'Could not delete cycle'
 
 @app.route('/setDate', methods=['POST'])
 def setDate():
-    global today, updatedToday
-    updatedToday = True
-    print("IN HERE")
-    today = request.form['datePicker']
-    print(today)
+    date_picked = request.form['datePicker']
+    days_controller.update_weather(date_picked)
+    days_controller.update_inside_temperature()
+    
     return redirect('/')
 
 @app.route('/startTemp', methods=['POST'])
 def setStartTemp():
-    global startTemp, cachedDays, selDay
     startTemp = float(request.form['startTempPicker'])
-    cachedDays[selDay] = False
+    days_controller.set_start_temperature(startTemp)
+    
     return redirect('/')
-
-def sort(cycles):
-    cycles.sort(key=lambda x: time(hour=x.h,minute=x.m))
-
-    return cycles
 
 def updateDayIDs(day):
     dayIDs = DayIDs.query.one()
@@ -217,48 +200,10 @@ def updateDayIDs(day):
 
     db.session.commit()
 
-def generatePredictiveModel(cycles):
-    global lastUpdatedWeather, outsideTemperatures, selDay, cachedRuntimes, UVIndex, updatedToday, startTemp
-    sched = []
-
-    outside = []
-    simSched = []
-
-
-    if updatedToday:
-        print("UPDATING TEMPERATURE DATA FROM FORCAST SERVER")
-        lastUpdatedWeather = int(cTime.time())
-        updatedToday = False
-        outsideTemperatures, UVIndex = getWeatherData(today)
-        for i in range(len(cachedDays)):
-            cachedDays[i] = False
-
-    for hr in range(0,24):
-        outside.append(((int(datetime(2020,1,1,hr,0,0).timestamp() * 1000.0), outsideTemperatures[hr])))
-
-
-    for cycle in cycles:
-        sched.append((int(datetime(2020,1,1,cycle.h,cycle.m,0).timestamp() * 1000.0), cycle.t))
-        hr = cycle.h + (cycle.m / 60)
-        simSched.append((hr, cycle.t))
-    
-    if not cachedDays[selDay]:
-        print("RECALCULATING SIM INSIDE TEMPS")
-        cachedInsideTemperatures[selDay] = []
-        cachedDays[selDay] = True
-        
-        simInsideTemps, cachedRuntimes[selDay] = calulateModel(startTemp, simSched, outsideTemperatures, UVIndex)
-
-        for inside, hr in simInsideTemps:
-            h = int(hr)
-            m = int((hr - h)*60)
-
-            cachedInsideTemperatures[selDay].append((int(datetime(2020,1,1,h,m,0).timestamp() * 1000.0), inside))
-
-    
-    return sched, cachedInsideTemperatures[selDay], outside, cachedRuntimes[selDay]
-
-    
+def update_simulation():
+    day = days_controller.selected_day
+    cycles = sort(Cycle.query.filter_by(d=day).all())
+    days_controller.update_schedule(cycles)
 
 
 if __name__ == "__main__":

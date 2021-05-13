@@ -22,7 +22,7 @@ def calulateModel(startTemp, s,outsideTemperature, uvIndex):
   x2 = startTemp - 4.0
   sched = s
   data = []
-  penalty = [x1 - x*0.07 for x in range(0,250)]
+  penalty = [x1 - x*0.03 for x in range(0,250)]
   lastHeating = heating
   counter = 0
   countUp = 0

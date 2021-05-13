@@ -1,0 +1,150 @@
+{% extends 'base.jinja' %} {% block head %}
+<title>Thermostat</title>
+
+{% endblock %} {% block body %}
+
+<div class="neu-container">
+    <div class="neu">
+        <div class="row">
+            {% for day in range(0, 8)%}
+            <div class="column">
+                {% if day == selDay %}
+                <input type="checkbox" id={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}" checked> {% else %}
+                <input type="checkbox" id={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}"> {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="container">
+    <div class="neu-container">
+        <h1 style="text-align: top">Az Thermostat</h1>
+
+        <div class="neu">
+            <div class="neu-inset">
+                <output for="temp-slider" id="set-temp">70</output>
+            </div>
+            <div style="padding: 10px; margin-bottom: 10px">
+                <input type="range" class="neu-range" id="temp-slider" min="50" max="90" value="70" oninput="updateSlider(this.value)">
+                <div id="temp-line" class="bar">
+                    <div class="line"></div>
+                </div>
+            </div>
+
+
+            <div align="center">
+                <input type="text" id="demoB1" hidden="true" />
+                <div id="demoB2">
+                </div>
+                <button class="neu-btn" style="color: gray" onclick="updateCycle(0)">Add</button>
+            </div>
+        </div>
+        <div class="neu">
+            <!-- <label for="fader">Volume</label>
+              <input type="range" min="0" max="100" value="50" id="fader" step="20" list="volsettings" oninput="outputUpdate(value)">
+              <div class="neu-inset">
+                <output for="fader" id="volume">50</output>
+              </div>
+              <datalist id="volsettings">
+                <option>0</option>
+                <option>20</option>
+                <option>40</option>
+                <option>60</option>
+                <option>80</option>
+                <option>100</option>
+              </datalist>
+              <button class="neu-btn" onclick="window.location.href=''">Add</button> -->
+        </div>
+
+        <div class="neu">
+            {% if cycles|length< 1 %} 
+            <h4>There are no cycles. Create one below!</h4>
+            {% else %} {% for i in range(cycles|length) %}
+                <div class="neu">
+                    <div class="row">
+                        <div class="column">
+                            <div class="neu-inset">
+                                <label>{{ cycles[i].h }}:{{ cycles[i].m }}</label>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <div class="neu-inset">
+                                <label>{{ cycles[i].t }}</label>
+                            </div>
+                        </div>
+                        <div class="column">
+                            <button class="neu-btn" style="background-color: green" onclick="updateCycle({{cycles[i].id}})">Update</button>
+                        </div>
+                        <div class="column">
+                            <button class="neu-btn" style="background-color: red" onclick="window.location.href='/delete/{{cycles[i].id}}'">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %} 
+            {% endif %}
+        </div>
+
+    </div>
+    <div>
+        <div id="chartContainer" style="height: 370px; width: 100%;"></div>
+        <h2 style="text-align: center">Predicted Runtime: {{"%.2f"|format(runtime)}} Hrs.</h2>
+        <label for="simDay">Simulation date:</label>
+
+        <form name="datePicker" action="/setDate" method="POST">
+            <input type="date" id="datePicker" name="datePicker" value="{{today}}" min="" max="">
+            <button type="submit">Date</button>
+        </form>
+        <form name="startTempPicker" action="/startTemp" method="POST">
+            <input type="number" id="startTempPicker" name="startTempPicker" value="{{startTemp}}" min="" max="">
+            <button type="submit">Set</button>
+        </form>
+        <script>
+            function outputUpdate(vol) {
+                document.querySelector("#volume").value = vol;
+            }
+
+            function updateSlider(v) {
+                document.querySelector("#set-temp").value = v;
+                v = map(v, 50, 90, 1, 85);
+                console.log(v);
+                document.getElementById("temp-line").style.width = v + "%";
+            }
+
+            function map(x, in_min, in_max, out_min, out_max) {
+                return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+            }
+
+            function updateCycle(id) {
+                let degrees = document.getElementById('set-temp').value;
+                let min = Number(document.getElementById('minute').value);
+                let hour = Number(document.getElementById('hour').value);
+                let ante = document.getElementById('ante').value;
+                if (ante === 'PM') {
+                    if (hour !== 12){
+                        hour += 12;
+                    }
+                } else if (hour === 12) {
+                    hour = 0;
+                }
+                if (id === 0) {
+                    window.location.href = '/newCycle/' + degrees + '/' + hour + '/' + min
+                } else {
+                    window.location.href = '/update/' + id + '/' + degrees + '/' + hour + '/' + min
+                }
+            }
+            window.addEventListener("load", function() {
+                tp.attach({
+                    target: "demoB1",
+                    wrap: "demoB2"
+                });
+            });
+        </script>
+
+    </div>
+</div>
+
+{% endblock %}
