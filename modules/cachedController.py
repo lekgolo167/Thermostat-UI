@@ -1,18 +1,20 @@
 from datetime import datetime, time, date
 import time as cTime
 
-from model import calulateModel
-from weather import getWeatherData
+from modules.model import simulate
+from modules.weather import get_weather_data
+from modules.simulation_cpp import simulation
 
 class ChachedDaysController():
 	def __init__(self, get_cycles):
 
 		self.days_data = [DayData() for _ in range(8)]
-		self.selected_day = 0
+		self.selected_day = 1
 
 		today = date.today().strftime('%Y-%m-%d')
-		for x in range(8):
+		for x in range(0,8):
 			day = self.days_data[x]
+			day.start_temperature = 69.0
 			self.update_weather(today, day)
 			cycles = get_cycles(x)
 			self.update_schedule(cycles, day)
@@ -28,7 +30,7 @@ class ChachedDaysController():
 	def check_dates(self):
 		print("CHECKING DATES")
 		today = date.today().strftime('%Y-%m-%d')
-		for day in range(7):
+		for day in range(0,7):
 			if self.days_data[day].last_updated < int(cTime.time()) - 43200: # 12 hrs
 				
 				self.update_weather(today, self.days_data[day])
@@ -58,12 +60,13 @@ class ChachedDaysController():
 		if day is None:
 			day = self.days_data[self.selected_day]
 
-		outside_t, uv = getWeatherData(_date)
+		outside_t, uv = get_weather_data(_date)
 
 		day.outside_temperatures = outside_t
 		day.uv_indices = uv
 		day.last_updated = int(cTime.time())
 		day.g_outside_temperatures = []
+		day.days_date = _date
 
 		for hr in range(0,24):
 			# generate list for graphing the outside temperature
@@ -77,7 +80,7 @@ class ChachedDaysController():
 
 		day.g_inside_temperatures = []
 
-		sim_inside_t, day.runtime = calulateModel(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
+		sim_inside_t, day.runtime = simulation.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
 
 		for inside_t, hr in sim_inside_t:
 			h = int(hr)

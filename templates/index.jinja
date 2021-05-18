@@ -37,8 +37,8 @@
 
 
             <div align="center">
-                <input type="text" id="demoB1" hidden="true" />
-                <div id="demoB2">
+                <input type="text" id="sel_time" hidden="true" />
+                <div id="time_picker">
                 </div>
                 <button class="neu-btn" style="color: gray" onclick="updateCycle(0)">Add</button>
             </div>
@@ -65,15 +65,17 @@
             <h4>There are no cycles. Create one below!</h4>
             {% else %} {% for i in range(cycles|length) %}
                 <div class="neu">
-                    <div class="row">
+                    <div class="row" style="align-items: center; text-align: center">
                         <div class="column">
-                            <div class="neu-inset">
+                            <div >
+                                <i class="far fa-clock"></i>
                                 <label>{{ cycles[i].h }}:{{ cycles[i].m }}</label>
                             </div>
                         </div>
                         <div class="column">
-                            <div class="neu-inset">
-                                <label>{{ cycles[i].t }}</label>
+                            <div >
+                                <i class="fas fa-thermometer-half"></i>
+                                <label>{{ cycles[i].t }} F°</label>
                             </div>
                         </div>
                         <div class="column">
@@ -138,8 +140,8 @@
             }
             window.addEventListener("load", function() {
                 tp.attach({
-                    target: "demoB1",
-                    wrap: "demoB2"
+                    target: "sel_time",
+                    wrap: "time_picker"
                 });
             });
         </script>
