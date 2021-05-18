@@ -5,8 +5,6 @@ from flask_marshmallow import Marshmallow
 from sqlalchemy import Column, Integer, String, Float, DateTime
 import time as cTime
 
-from modules.model import calulateModel
-from modules.weather import getWeatherData
 from modules.cachedController import ChachedDaysController
 
 app = Flask(__name__)
