@@ -163,6 +163,30 @@ def delete(id):
     except:
         return 'Could not delete cycle'
 
+@app.route('/copyDayTo', methods=['POST'])
+def copyDayTo():
+    for day in range(len(DAYS)):
+        checked = request.form.get(DAYS[day])
+        if checked:
+
+            cycles = Cycle.query.filter_by(d=day).all()
+            # remove all cycles for that day
+            for cycle in cycles:
+                db.session.delete(cycle)
+            
+            cycles = Cycle.query.filter_by(d=days_controller.selected_day).all()
+            # copy all cycles for that day
+            for cycle in cycles:
+                copied_cycle = Cycle(d=day,h=cycle.h,m=cycle.m,t=cycle.t)
+                db.session.add(copied_cycle)
+
+            # save and update
+            db.session.commit()
+            updateDayIDs(day)
+            update_simulation(day)
+
+    return redirect('/')
+
 @app.route('/setDate', methods=['POST'])
 def setDate():
     date_picked = request.form['datePicker']
@@ -198,10 +222,11 @@ def updateDayIDs(day):
 
     db.session.commit()
 
-def update_simulation():
-    day = days_controller.selected_day
+def update_simulation(day=None):
+    if day is None:
+        day = days_controller.selected_day
     cycles = sort(Cycle.query.filter_by(d=day).all())
-    days_controller.update_schedule(cycles)
+    days_controller.update_schedule(cycles, days_controller.days_data[day])
 
 
 if __name__ == "__main__":

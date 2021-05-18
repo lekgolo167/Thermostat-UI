@@ -9,15 +9,13 @@
             {% for day in range(0, 8)%}
             <div class="column">
                 {% if day == selDay %}
-                <input type="checkbox" id={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}" checked> {% else %}
-                <input type="checkbox" id={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}"> {% endif %}
+                <input type="checkbox" class={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}" checked> {% else %}
+                <input type="checkbox" class={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}"> {% endif %}
             </div>
             {% endfor %}
         </div>
     </div>
 </div>
-
-
 
 
 <div class="container">
@@ -104,6 +102,26 @@
             <input type="number" id="startTempPicker" name="startTempPicker" value="{{startTemp}}" min="" max="">
             <button type="submit">Set</button>
         </form>
+
+        
+        <div class="neu">
+        <label>Copy Today To ... </label>
+        <form action="/copyDayTo" method="POST">
+        <fieldset id="c">      
+
+        <div class="row">   
+        {% for day in range(0, 8)%}
+            {% if day != selDay %}
+                <div class="column">
+                    <input type="checkbox" name={{days[day]}} class={{days[day]}}>
+                </div>
+            {% endif %} 
+        {% endfor %}
+        </div>
+        <button class="neu-btn" style="color: gray" type="submit">Copy</button>
+        </fieldset>  
+        </form>
+        </div>
         <script>
             function outputUpdate(vol) {
                 document.querySelector("#volume").value = vol;
