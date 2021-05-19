@@ -39,6 +39,7 @@
                 <div id="time_picker">
                 </div>
                 <button class="neu-btn" style="color: gray" onclick="updateCycle(0)">Add</button>
+                <button class="neu-btn" style="color: gray" onclick="setTemporaryTemp()">Set</button>
             </div>
         </div>
         <div class="neu">
@@ -137,7 +138,10 @@
             function map(x, in_min, in_max, out_min, out_max) {
                 return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
             }
-
+            function setTemporaryTemp() {
+                let degrees = document.getElementById('set-temp').value;
+                window.location.href = '/setTemporaryTemp/' + degrees;
+            }
             function updateCycle(id) {
                 let degrees = document.getElementById('set-temp').value;
                 let min = Number(document.getElementById('minute').value);

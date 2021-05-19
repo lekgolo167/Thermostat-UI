@@ -10,7 +10,8 @@ class ChachedDaysController():
 
 		self.days_data = [DayData() for _ in range(8)]
 		self.selected_day = 1
-
+		self.temporary_temperature = 0.0
+		
 		today = date.today().strftime('%Y-%m-%d')
 		for x in range(0,8):
 			day = self.days_data[x]

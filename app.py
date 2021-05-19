@@ -116,7 +116,16 @@ def setDay(day):
 def getDayIDs():
 
     dayIDs = DayIDs.query.one()
-    return jsonify(dayIDs_schema.dump(dayIDs))
+    tmp = days_controller.temporary_temperature
+    days_controller.temporary_temperature = 0.0
+
+    return jsonify(dayIDs=dayIDs_schema.dump(dayIDs), temporary=tmp)
+
+@app.route('/setTemporaryTemp/<int:tmp>', methods=['GET'])
+def setTemporaryTemp(tmp):
+
+    days_controller.temporary_temperature = float(tmp)
+    return redirect('/')
 
 @app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
 def newCycle(t, h, m):

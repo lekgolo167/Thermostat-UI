@@ -6,3 +6,4 @@ key.txt
 *.pyc
 *.o
 *.so
+pylintrc
