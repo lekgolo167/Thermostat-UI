@@ -1,9 +1,9 @@
 from datetime import datetime, time, date
 import time as cTime
 
-from modules.model import simulate
+#from modules.model import simulate
 from modules.weather import get_weather_data
-#from modules.simulation_cpp import simulation
+from modules.simulation_cpp import simulation
 
 class ChachedDaysController():
 	def __init__(self, get_cycles):
@@ -11,7 +11,7 @@ class ChachedDaysController():
 		self.days_data = [DayData() for _ in range(8)]
 		self.selected_day = 1
 		self.temporary_temperature = 0.0
-		
+
 		today = date.today().strftime('%Y-%m-%d')
 		for x in range(0,8):
 			day = self.days_data[x]
@@ -81,8 +81,8 @@ class ChachedDaysController():
 
 		day.g_inside_temperatures = []
 		# C++ version 
-		#sim_inside_t, day.runtime = simulation.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
-		sim_inside_t, day.runtime = simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
+		sim_inside_t, day.runtime = simulation.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
+		#sim_inside_t, day.runtime = simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
 
 		for inside_t, hr in sim_inside_t:
 			h = int(hr)
