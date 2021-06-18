@@ -35,7 +35,7 @@ class ChachedDaysController():
 			if self.days_data[day].last_updated < int(cTime.time()) - 43200: # 12 hrs
 				
 				self.update_weather(today, self.days_data[day])
-				self.update_inside_temperature(day)
+				self.update_inside_temperature(self.days_data[day])
 
 	def update_schedule(self, cycles, day=None):
 		print("UPDATING SCHEDULE FOR: ", self.selected_day)
