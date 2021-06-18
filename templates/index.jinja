@@ -24,15 +24,11 @@
 
         <div class="neu">
             <div class="neu-inset">
-                <output for="temp-slider" id="set-temp">70</output>
+                <output id="set-temp">72</output>
             </div>
             <div style="padding: 10px; margin-bottom: 10px">
-                <input type="range" class="neu-range" id="temp-slider" min="50" max="90" value="70" oninput="updateSlider(this.value)">
-                <div id="temp-line" class="bar">
-                    <div class="line"></div>
-                </div>
+                <input type="range" class="neu-range" id="temp-slider" min="1" max="100" value="50" oninput="updateSlider(this.value)">
             </div>
-
 
             <div align="center">
                 <input type="text" id="sel_time" hidden="true" />
@@ -43,20 +39,7 @@
             </div>
         </div>
         <div class="neu">
-            <!-- <label for="fader">Volume</label>
-              <input type="range" min="0" max="100" value="50" id="fader" step="20" list="volsettings" oninput="outputUpdate(value)">
-              <div class="neu-inset">
-                <output for="fader" id="volume">50</output>
-              </div>
-              <datalist id="volsettings">
-                <option>0</option>
-                <option>20</option>
-                <option>40</option>
-                <option>60</option>
-                <option>80</option>
-                <option>100</option>
-              </datalist>
-              <button class="neu-btn" onclick="window.location.href=''">Add</button> -->
+
         </div>
 
         <div class="neu">
@@ -124,16 +107,20 @@
         </form>
         </div>
         <script>
-            function outputUpdate(vol) {
-                document.querySelector("#volume").value = vol;
-            }
-
-            function updateSlider(v) {
-                document.querySelector("#set-temp").value = v;
-                v = map(v, 50, 90, 1, 85);
-                console.log(v);
-                document.getElementById("temp-line").style.width = v + "%";
-            }
+                var slider = document.getElementById("temp-slider");
+                var output = document.getElementById("set-temp");
+                //output.innerHTML = slider.value;
+                slider.oninput = function() {
+                    //output.innerHTML = this.value;
+                }
+                slider.addEventListener("mousemove", function() {
+                    var x = slider.value;
+                    var color = 'linear-gradient(90deg, #185ef0, #30cfd0 '+x+'%, #00000000 '+x+'%)';
+                    slider.style.background = color;
+                    var t = Math.trunc(map(x, 1, 100, 56, 90));
+                    output.innerHTML = t;
+                }
+                    )
 
             function map(x, in_min, in_max, out_min, out_max) {
                 return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;

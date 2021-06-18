@@ -139,20 +139,8 @@ input[type="checkbox"]:checked:after {
     box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5), 10px 10px 15px rgba(70, 70, 70, 0.3);
 }
 
-.bar {
-    position: absolute;
-    margin-top: -13px;
-    left: 13px;
-    height: 9px;
-    width: 45%;
-    overflow: hidden;
-}
-
-.line {
-    height: 9px;
-    width: 100%;
-    border-radius: 9px;
-    background: linear-gradient(to right, #185ef0, #30cfd0);
+#temp-slider {
+    background: linear-gradient(90deg, #185ef0, #30cfd0 50%, #00000000 50%);
 }
 
 .row {
