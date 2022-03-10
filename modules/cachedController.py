@@ -1,14 +1,18 @@
-from datetime import datetime, time, date
+from datetime import datetime, timedelta, date
 import time as cTime
 
-#from modules.model import simulate
+from modules.model import simulate
 from modules.weather import get_weather_data
-from modules.simulation_cpp import simulation
+#from modules.simulation_cpp import simulation
 
 class ChachedDaysController():
 	def __init__(self, get_cycles):
+		with open("key.txt", 'r') as f:
+			self.apiKey = f.readline().rstrip()
+			self.lat = f.readline().rstrip()
+			self.lon = f.readline().rstrip()
 
-		self.days_data = [DayData() for _ in range(8)]
+		self.days_data = [DayData(d) for d in range(8)]
 		self.selected_day = 1
 		self.temporary_temperature = 0.0
 
@@ -38,9 +42,9 @@ class ChachedDaysController():
 				self.update_inside_temperature(self.days_data[day])
 
 	def update_schedule(self, cycles, day=None):
-		print("UPDATING SCHEDULE FOR: ", self.selected_day)
 		if day is None:
 			day = self.days_data[self.selected_day]
+		print("UPDATING SCHEDULE FOR: ", day.days_date)
 
 		day.g_schedule = []
 		day.sim_schedule = []
@@ -57,11 +61,11 @@ class ChachedDaysController():
 		self.update_inside_temperature(day)
 
 	def update_weather(self, _date, day=None):
-		print("UPDATING WEATHER FOR: ", self.selected_day)
 		if day is None:
 			day = self.days_data[self.selected_day]
+		print("UPDATING WEATHER FOR: ", day.days_date)
 
-		outside_t, uv = get_weather_data(_date)
+		outside_t, uv = get_weather_data(_date, self.apiKey, self.lat, self.lon)
 
 		day.outside_temperatures = outside_t
 		day.uv_indices = uv
@@ -75,14 +79,14 @@ class ChachedDaysController():
 
 
 	def update_inside_temperature(self, day=None):
-		print("UPDATING INSIDE TEMPERATURES FOR: ", self.selected_day)
 		if day is None:
 			day = self.days_data[self.selected_day]
+		print("UPDATING INSIDE TEMPERATURES FOR: ", day.days_date)
 
 		day.g_inside_temperatures = []
 		# C++ version 
-		sim_inside_t, day.runtime = simulation.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
-		#sim_inside_t, day.runtime = simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
+		#sim_inside_t, day.runtime = simulation.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
+		sim_inside_t, day.runtime = simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
 
 		for inside_t, hr in sim_inside_t:
 			h = int(hr)
@@ -93,8 +97,9 @@ class ChachedDaysController():
 
 
 class DayData():
-	def __init__(self):
-		self.days_date = date.today().strftime('%Y-%m-%d')
+	def __init__(self, d):
+		day = date.today()+timedelta(d)
+		self.days_date = day.strftime('%Y-%m-%d')
 		self.last_updated = 0
 		self.outside_temperatures = []
 		self.uv_indices = []

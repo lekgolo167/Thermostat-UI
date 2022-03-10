@@ -4,14 +4,18 @@ from datetime import datetime, time, date
 from flask_marshmallow import Marshmallow
 from sqlalchemy import Column, Integer, String, Float, DateTime
 import time as cTime
+import socket
 
 from modules.cachedController import ChachedDaysController
+from modules.weather import get_weather_forecast
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///schedule.db'
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 @app.cli.command('db_create')
 def db_create():
@@ -100,6 +104,17 @@ def index():
                             runtime=day.runtime, today=day.days_date, startTemp=day.start_temperature)
 
 
+@app.route('/heartbeat', methods=['GET'])
+def heartbeat():
+
+    sock.sendto(bytes(str(4), 'utf-8'), ("192.168.0.202", 2391))
+    return redirect('/')
+
+@app.route('/getForecast', methods=['GET'])
+def getForecast():
+    forecast = get_weather_forecast(days_controller.apiKey, days_controller.lat, days_controller.lon)
+    return forecast
+
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
 
@@ -116,15 +131,31 @@ def setDay(day):
 def getDayIDs():
 
     dayIDs = DayIDs.query.one()
+
+    return jsonify(dayIDs_schema.dump(dayIDs))
+
+@app.route('/getEpoch', methods=['GET'])
+def getEpoch():
+    timezone = 25200 # 7 hours from GMT
+    is_dst = cTime.localtime().tm_isdst
+    if is_dst == 1:
+        timezone -= 3600 # make it 6 hours for when daylight savings
+        
+    return jsonify(epoch=int(cTime.time()-timezone))
+
+@app.route('/getTemporary', methods=['GET'])
+def getTemporary():
+
     tmp = days_controller.temporary_temperature
     days_controller.temporary_temperature = 0.0
 
-    return jsonify(dayIDs=dayIDs_schema.dump(dayIDs), temporary=tmp)
+    return jsonify(temporary=tmp)
 
 @app.route('/setTemporaryTemp/<int:tmp>', methods=['GET'])
 def setTemporaryTemp(tmp):
-
+    
     days_controller.temporary_temperature = float(tmp)
+    sock.sendto(bytes(str(1), 'utf-8'), ("192.168.0.202", 2390))
     return redirect('/')
 
 @app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
@@ -137,6 +168,7 @@ def newCycle(t, h, m):
     try:
         db.session.add(new_cycle)
         db.session.commit()
+        sock.sendto(bytes(str(2), 'utf-8'), ("192.168.0.202", 2390))
         update_simulation()
         return redirect('/')
     except:
@@ -153,6 +185,7 @@ def update(_id, t, h, m):
     try:
         updateDayIDs(cycle.d)
         db.session.commit()
+        sock.sendto(bytes(str(2), 'utf-8'), ("192.168.0.202", 2390))
         update_simulation()
         return redirect('/')
     except:
@@ -167,6 +200,7 @@ def delete(id):
         updateDayIDs(cycle.d)
         db.session.delete(cycle)
         db.session.commit()
+        sock.sendto(bytes(str(2), 'utf-8'), ("192.168.0.202", 2390))
         update_simulation()
         return redirect('/')
     except:
