@@ -5,6 +5,7 @@ from flask_marshmallow import Marshmallow
 from sqlalchemy import Column, Integer, String, Float, DateTime
 import time as cTime
 import socket
+import argparse
 
 from modules.cachedController import ChachedDaysController
 from modules.weather import get_weather_forecast
@@ -85,7 +86,13 @@ def get_cycles(day):
 
     return sort(Cycle.query.filter_by(d=day).all())
 
-days_controller = ChachedDaysController(get_cycles)
+parser = argparse.ArgumentParser()
+parser.add_argument('--debug', '-d', action='store_true', default=False,
+						help='Enables debugging which loads weather data from file rather than the API')
+argument = parser.parse_args()
+DEBUG_ENABLED = bool(argument.debug)
+
+days_controller = ChachedDaysController(get_cycles, DEBUG_ENABLED)
 
 
 @app.route('/', methods=['GET'])
@@ -140,7 +147,7 @@ def getEpoch():
     is_dst = cTime.localtime().tm_isdst
     if is_dst == 1:
         timezone -= 3600 # make it 6 hours for when daylight savings
-        
+
     return jsonify(epoch=int(cTime.time()-timezone))
 
 @app.route('/getTemporary', methods=['GET'])
@@ -273,4 +280,4 @@ def update_simulation(day=None):
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0')
+    app.run(debug=DEBUG_ENABLED, host='0.0.0.0')

@@ -2,16 +2,16 @@ from datetime import datetime, timedelta, date
 import time as cTime
 
 from modules.model import simulate
-from modules.weather import get_weather_data
+from modules.weather import get_weather_data, weather_data_from_file
 #from modules.simulation_cpp import simulation
 
 class ChachedDaysController():
-	def __init__(self, get_cycles):
+	def __init__(self, get_cycles, debug=False):
 		with open("key.txt", 'r') as f:
 			self.apiKey = f.readline().rstrip()
 			self.lat = f.readline().rstrip()
 			self.lon = f.readline().rstrip()
-
+		self.debug = debug
 		self.days_data = [DayData(d) for d in range(8)]
 		self.selected_day = 1
 		self.temporary_temperature = 0.0
@@ -65,7 +65,12 @@ class ChachedDaysController():
 			day = self.days_data[self.selected_day]
 		print("UPDATING WEATHER FOR: ", day.days_date)
 
-		outside_t, uv = get_weather_data(_date, self.apiKey, self.lat, self.lon)
+		outside_t = []
+		uv =[]
+		if self.debug:
+			outside_t, uv = weather_data_from_file()
+		else:
+			outside_t, uv = get_weather_data(_date, self.apiKey, self.lat, self.lon)
 
 		day.outside_temperatures = outside_t
 		day.uv_indices = uv

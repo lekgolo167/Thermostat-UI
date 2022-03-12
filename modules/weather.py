@@ -28,7 +28,7 @@ def get_weather_forecast(apiKey, lat, lon):
     data = json.loads(r.text)
 
     parsed_dict = {}
-    hourly = {}
+    hourly = []
     hour = 0
     for hourlyData in data['hourly']['data']:
         icon = None
@@ -37,24 +37,26 @@ def get_weather_forecast(apiKey, lat, lon):
         except KeyError:
             icon = weather_icons_dict['none']
 
-        temperature = hourlyData['temperature']
-        hourly[hour] = [icon, temperature]
+        temperature = int(hourlyData['temperature'])
+        hourly.append({'i':icon, 't':temperature})
         hour += 1
+        if hour >= 25:
+            break
     
-    daily = {}
-    day = 0
-    for forecast in data['daily']['data']:
+    daily = []
+    day = datetime.datetime.today().weekday()+1
+    for forecast in data['daily']['data'][:4]:
         icon = None
         try:
             icon = weather_icons_dict[forecast['icon']]
         except KeyError:
             icon = weather_icons_dict['none']
-        tHigh = forecast['temperatureHigh']
-        tLow = forecast['temperatureLow']
-        daily[day] = [icon, tHigh, tLow]
+        tHigh = int(forecast['temperatureHigh'])
+        tLow =  int(forecast['temperatureLow'])
+        if day == 7:
+            day = 0
+        daily.append({'d':day,'i':icon, 'H':tHigh, 'L':tLow})
         day += 1
-        if day == 3:
-            break
     
     parsed_dict = {'hourly': hourly, 'daily':daily}
     json_data = json.dumps(parsed_dict)
@@ -79,3 +81,19 @@ def get_weather_data(today, apiKey, lat, lon):
         dailyUVindex.append(hourData['uvIndex'])
 
     return dailyTemperatures, dailyUVindex
+
+def weather_data_from_file():
+    print("Loading weather data from file")
+    with open('archive/weather.json', 'r') as infile:
+        text = infile.read()
+        data = json.loads(text)
+        hourlyData = data['hourly']['data']
+
+        dailyTemperatures = []
+        dailyUVindex = []
+        for hourData in hourlyData:
+            dailyTemperatures.append(hourData['temperature'])
+            dailyUVindex.append(hourData['uvIndex'])
+
+        return dailyTemperatures, dailyUVindex
+    print("Failed to load file")
