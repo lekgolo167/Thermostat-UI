@@ -42,7 +42,10 @@ def get_weather_forecast(apiKey, lat, lon):
         hour += 1
         if hour >= 25:
             break
-    
+
+    hr = datetime.datetime.today().hour
+    hourly = hourly[25-hr:] + hourly[:25-hr]
+
     daily = []
     day = datetime.datetime.today().weekday()+1
     for forecast in data['daily']['data'][:4]:

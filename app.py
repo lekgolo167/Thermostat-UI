@@ -16,7 +16,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///schedule.db'
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 @app.cli.command('db_create')
 def db_create():
@@ -86,6 +85,8 @@ def get_cycles(day):
 
     return sort(Cycle.query.filter_by(d=day).all())
 
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind('', )
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', '-d', action='store_true', default=False,
 						help='Enables debugging which loads weather data from file rather than the API')
