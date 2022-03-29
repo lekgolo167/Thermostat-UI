@@ -51,12 +51,13 @@ class ChachedDaysController():
 
 		for cycle in cycles:
 			# generate list for graphing the schedule
-			day.g_schedule.append((int(datetime(2020,1,1,cycle.h,cycle.m,0).timestamp() * 1000.0), cycle.t))
+			timestamp = str(cycle.h,).zfill(2) + ':' + str(cycle.m).zfill(2)
+			day.g_schedule.append({'x': timestamp, 'y': cycle.t})
 			hr = cycle.h + (cycle.m / 60)
 			day.sim_schedule.append((hr, cycle.t))
 
 		# This is so the canvasjs shows the graph all the way to the end
-		day.g_schedule.append((int(datetime(2020,1,1,23,59,59).timestamp() * 1000.0), 60.0))
+		day.g_schedule.append({'x': '23:59', 'y': 60.0})
 
 		self.update_inside_temperature(day)
 
@@ -80,7 +81,8 @@ class ChachedDaysController():
 
 		for hr in range(0,24):
 			# generate list for graphing the outside temperature
-			day.g_outside_temperatures.append(((int(datetime(2020,1,1,hr,0,0).timestamp() * 1000.0), outside_t[hr])))
+			timestamp = str(hr).zfill(2) + ':00'
+			day.g_outside_temperatures.append({'x': timestamp, 'y': outside_t[hr]})
 
 
 	def update_inside_temperature(self, day=None):
@@ -93,12 +95,13 @@ class ChachedDaysController():
 		#sim_inside_t, day.runtime = simulation.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
 		sim_inside_t, day.runtime = simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
 
-		for inside_t, hr in sim_inside_t:
+		for inside_t, hr in sim_inside_t[::2]:
 			h = int(hr)
 			m = int((hr - h)*60)
 
 			# generate list for graphing the inside temperature
-			day.g_inside_temperatures.append((int(datetime(2020,1,1,h,m,0).timestamp() * 1000.0), inside_t))
+			timestamp = str(h).zfill(2) + ':' + str(m).zfill(2)
+			day.g_inside_temperatures.append({'x': timestamp, 'y': inside_t})
 
 
 class DayData():

@@ -1,4 +1,5 @@
-from flask import Flask, render_template, url_for, jsonify, request, redirect
+
+from flask import Flask, render_template, jsonify, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, time, date
 from flask_marshmallow import Marshmallow
@@ -84,9 +85,17 @@ def sort(cycles):
 def get_cycles(day):
 
     return sort(Cycle.query.filter_by(d=day).all())
+MSG_TEMP = 1
+MSG_SCHED_UPDATE = 2
+MSG_NODE_RED = 3
+MSG_FLASK = 4
+MSG_SERVER_UP = 5
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind('', )
+thermostat_ip_addr = None
+thermostat_ip_addr = socket.gethostbyname('arduino-88fc')
+sock.sendto(bytes(str(MSG_SERVER_UP), 'utf-8'), (thermostat_ip_addr, 2390))
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', '-d', action='store_true', default=False,
 						help='Enables debugging which loads weather data from file rather than the API')
@@ -107,16 +116,20 @@ def index():
 
     day = days_controller.get_day()
 
-    return render_template("index.jinja", cycles=cycles, days=DAYS, selDay=sel_day, sched=day.g_schedule,
-                            furn=day.g_inside_temperatures , outside=day.g_outside_temperatures,
+    return render_template("index.jinja", cycles=cycles, days=DAYS, selDay=sel_day,
                             runtime=day.runtime, today=day.days_date, startTemp=day.start_temperature)
 
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
 
-    sock.sendto(bytes(str(4), 'utf-8'), ("192.168.0.202", 2391))
+    sock.sendto(bytes(str(4), 'utf-8'), (thermostat_ip_addr, 2391))
     return redirect('/')
+
+@app.route('/plot', methods=['GET'])
+def plot():
+    day = days_controller.get_day()
+    return jsonify({'schedule': day.g_schedule, 'outside': day.g_outside_temperatures, 'inside': day.g_inside_temperatures})
 
 @app.route('/getForecast', methods=['GET'])
 def getForecast():
@@ -163,7 +176,7 @@ def getTemporary():
 def setTemporaryTemp(tmp):
     
     days_controller.temporary_temperature = float(tmp)
-    sock.sendto(bytes(str(1), 'utf-8'), ("192.168.0.202", 2390))
+    sock.sendto(bytes(str(1), 'utf-8'), (thermostat_ip_addr, 2390))
     return redirect('/')
 
 @app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
@@ -176,7 +189,7 @@ def newCycle(t, h, m):
     try:
         db.session.add(new_cycle)
         db.session.commit()
-        sock.sendto(bytes(str(2), 'utf-8'), ("192.168.0.202", 2390))
+        sock.sendto(bytes(str(2), 'utf-8'), (thermostat_ip_addr, 2390))
         update_simulation()
         return redirect('/')
     except:
@@ -193,7 +206,7 @@ def update(_id, t, h, m):
     try:
         updateDayIDs(cycle.d)
         db.session.commit()
-        sock.sendto(bytes(str(2), 'utf-8'), ("192.168.0.202", 2390))
+        sock.sendto(bytes(str(2), 'utf-8'), (thermostat_ip_addr, 2390))
         update_simulation()
         return redirect('/')
     except:
@@ -208,7 +221,7 @@ def delete(id):
         updateDayIDs(cycle.d)
         db.session.delete(cycle)
         db.session.commit()
-        sock.sendto(bytes(str(2), 'utf-8'), ("192.168.0.202", 2390))
+        sock.sendto(bytes(str(2), 'utf-8'), (thermostat_ip_addr, 2390))
         update_simulation()
         return redirect('/')
     except:
