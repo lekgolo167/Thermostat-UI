@@ -7,24 +7,9 @@ function httpGetAsync(theUrl, callback) {
     xmlHttpReq.open("GET", theUrl, true); // true for asynchronous 
     xmlHttpReq.send(null);
 }
+
 window.onload = function() {
-    let draw = Chart.controllers.line.prototype.draw;
-    Chart.controllers.line = Object.assign(Chart.controllers.line, {
-        draw: function() {
-            draw.apply(this, arguments);
-            let ctx = this.chart.chart.ctx;
-            let _stroke = ctx.stroke;
-            ctx.stroke = function() {
-                ctx.save();
-                ctx.shadowColor = '#E56590';
-                ctx.shadowBlur = 10;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 4;
-                _stroke.apply(this, arguments)
-                ctx.restore();
-            }
-        }
-    });
+
     httpGetAsync('/plot', function(result) {
 
         console.log(result.schedule);
@@ -33,33 +18,71 @@ window.onload = function() {
 
         const data = {
             datasets: [{
-                label: 'Schedule',
-                data: result.schedule,
-                borderColor: 'blue',
-                fill: true,
-                backgroundColor: 'rgba(75,192,192,0.1)',
-                stepped: true,
-            }, {
-                label: 'Outside',
-                borderColor: 'green',
-                fill: false,
-                cubicInterpolationMode: 'monotone',
-                data: result.outside
-            }, {
-                label: 'inside',
-                borderColor: 'red',
-                //showLine: false,
-                radius: 0,
-                fill: false,
-                cubicInterpolationMode: 'monotone',
-                data: result.inside
-            }]
+                    label: 'Inside',
+                    borderColor: '#e74e4e',
+                    //showLine: false,
+                    radius: 0,
+                    fill: false,
+                    cubicInterpolationMode: 'monotone',
+                    data: result.inside
+                },
+                {
+                    label: 'Schedule',
+                    data: result.schedule,
+                    borderColor: '#18a1f0',
+                    borderDash: [15, 3, 3, 3],
+                    fill: false,
+                    backgroundColor: 'rgba(75,192,192,0.1)',
+                    stepped: true,
+                }, {
+                    label: 'Outside',
+                    borderColor: '#5bcc1af3',
+                    radius: 0,
+                    fill: false,
+                    cubicInterpolationMode: 'monotone',
+                    data: result.outside
+                }
+            ]
+        };
+        const totalDuration = 3000;
+        console.log(result.inside.length)
+        const delayBetweenPoints = totalDuration / result.inside.length;
+        const previousY = (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(100) : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y;
+        const animation = {
+            x: {
+                type: 'number',
+                easing: 'linear',
+                duration: delayBetweenPoints,
+                from: NaN, // the point is initially skipped
+                delay(ctx) {
+                    console.log(ctx.type)
+                    if (ctx.type !== 'data' || ctx.xStarted) {
+                        return 0;
+                    }
+                    ctx.xStarted = true;
+                    return ctx.index * delayBetweenPoints;
+                }
+            },
+            y: {
+                type: 'number',
+                easing: 'linear',
+                duration: delayBetweenPoints,
+                from: previousY,
+                delay(ctx) {
+                    if (ctx.type !== 'data' || ctx.yStarted) {
+                        return 0;
+                    }
+                    ctx.yStarted = true;
+                    return ctx.index * delayBetweenPoints;
+                }
+            }
         };
         const config = {
-            type: 'line',
+            type: 'neuline',
             data: data,
 
             options: {
+                animation,
                 scales: {
                     x: {
                         grid: {
@@ -77,8 +100,9 @@ window.onload = function() {
                             parser: 'HH:mm',
                             unit: 'hour',
                             displayFormats: {
-                                hour: 'h:mm'
-                            }
+                                hour: 'h:mm a'
+                            },
+                            tooltipFormat: 'h:mm a'
                         }
                     },
 

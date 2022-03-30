@@ -33,7 +33,7 @@ var tp = {
             val.disabled = true;
             val.className = "tp-val";
             val.id = name;
-            if (segment == "hr") { val.value = "01"; } else if (segment == "min") { val.value = "00"; } else { val.value = "AM"; }
+            if (segment == "hr") { val.value = "12"; } else if (segment == "min") { val.value = "00"; } else { val.value = "PM"; }
             inst[segment] = val;
 
             // Down Button
@@ -90,7 +90,7 @@ var tp = {
         if (tp.stimer == null) {
             tp.sid = id;
             tp.sseg = segment;
-            tp.smax = segment == "hr" ? 12 : 59;
+            tp.smax = segment == "hr" ? 12 : 55;
             tp.smin = segment == "hr" ? 1 : 0;
             tp.sdir = direction;
             tp.hmspin();
@@ -123,8 +123,8 @@ var tp = {
 
         // (D2) SPIN!
         if (tp.sdir) { cv += val; } else { cv -= val; }
-        if (cv < tp.smin) { cv = tp.smin; }
-        if (cv > tp.smax) { cv = tp.smax; }
+        if (cv < tp.smin) { cv = tp.smax; }
+        if (cv > tp.smax) { cv = tp.smin; }
         if (cv < 10) { cv = "0" + cv; }
 
         // (D3) UPDATE DISPLAY
@@ -178,9 +178,9 @@ var tp = {
                 // Get + set popup time
                 let cv = this.value;
                 if (cv == "") {
-                    tp.instances[0].hr.value = "01";
+                    tp.instances[0].hr.value = "12";
                     tp.instances[0].min.value = "00";
-                    tp.instances[0].ap.value = "AM";
+                    tp.instances[0].ap.value = "PM";
                 } else {
                     tp.instances[0].hr.value = cv.substring(0, 2);
                     tp.instances[0].min.value = cv.substring(3, 5);

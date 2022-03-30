@@ -74,7 +74,9 @@
 
     </div>
     <div>
+    <div class="neu">
         <canvas id="scheduleGraph" style="height: 370px; width: 100%;"></canvas>
+    </div>
         <h2 style="text-align: center">Predicted Runtime: {{"%.2f"|format(runtime)}} Hrs.</h2>
         <label for="simDay">Simulation date:</label>
 
@@ -107,20 +109,21 @@
         </form>
         </div>
         <script>
-                var slider = document.getElementById("temp-slider");
-                var output = document.getElementById("set-temp");
-                //output.innerHTML = slider.value;
-                slider.oninput = function() {
-                    //output.innerHTML = this.value;
-                }
-                slider.addEventListener("mousemove", function() {
-                    var x = slider.value;
-                    var color = 'linear-gradient(90deg, #185ef0, #30cfd0 '+x+'%, #00000000 '+x+'%)';
-                    slider.style.background = color;
-                    var t = Math.trunc(map(x, 1, 100, 56, 90));
-                    output.innerHTML = t;
-                }
-                    )
+            var slider = document.getElementById("temp-slider");
+            var output = document.getElementById("set-temp");
+            //output.innerHTML = slider.value;
+            slider.oninput = function() {
+                //output.innerHTML = this.value;
+            }
+            function temperatureSliderCallback() {
+                var x = slider.value;
+                var color = 'linear-gradient(90deg, #185ef0, #30cfd0 '+x+'%, #00000000 '+x+'%)';
+                slider.style.background = color;
+                var t = Math.trunc(map(x, 1, 100, 56, 90));
+                output.innerHTML = t;
+            }
+            slider.addEventListener("touchmove", temperatureSliderCallback, false);
+            slider.addEventListener("mousemove", temperatureSliderCallback, false);
 
             function map(x, in_min, in_max, out_min, out_max) {
                 return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -157,5 +160,5 @@
 
     </div>
 </div>
- <script src="{{ url_for('static', filename='js/graph.js') }}"></script>
+<script src="{{ url_for('static', filename='js/graph.js') }}"></script>
 {% endblock %}
