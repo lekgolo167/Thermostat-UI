@@ -1,22 +1,24 @@
+:root {
+    --global-neu-background-color: #ececec;
+    --global-color-light-blue: #18a1f0;
+    --global-neu-font-dark: #a3a3a3;
+    --global-neu-text-shadow: -2px -2px 2px rgba(255, 255, 255, 0.5), 2px 2px 2px rgba(70, 70, 70, 0.5);
+    --global-neu-box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5), 10px 10px 15px rgba(70, 70, 70, 0.12);
+    --global-neu-inset-shadow: inset -10px -10px 15px rgba(255, 255, 255, 0.5), inset 10px 10px 15px rgba(70, 70, 70, 0.12);
+}
+
 body {
     background-color: #ececec;
     margin: 0;
     padding: 0;
+    font-weight: 800;
     font-family: sans-serif;
-}
-
-table,
-td,
-th {
-    /* border: 1px solid #aaa; */
-    border-collapse: collapse;
-    /* width: 100%; */
-    text-align: center;
+    color: var(--global-neu-font-dark);
 }
 
 h1 {
-    color: #e2e2e2;
-    text-shadow: -2px -2px 2px rgba(255, 255, 255, 0.5), 2px 2px 2px rgba(70, 70, 70, 0.5);
+    color: var(--global-neu-font-dark);
+    text-shadow: var(--global-neu-text-shadow);
 }
 
 .container {
@@ -34,7 +36,7 @@ input[type="checkbox"] {
     height: 4rem;
     width: 8rem;
     -webkit-appearance: none;
-    box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5), 10px 10px 15px rgba(70, 70, 70, 0.12);
+    box-shadow: var(--global-neu-box-shadow);
     border-radius: 20%;
     border: 8px solid #ececec;
     outline: none;
@@ -45,7 +47,7 @@ input[type="checkbox"] {
 }
 
 input[type="checkbox"]:after {
-    color: #7a7a7a;
+    color: var(--global-neu-font-dark);
     font-size: 2rem;
 }
 
@@ -82,7 +84,7 @@ input[type="checkbox"]:after {
 }
 
 input[type="checkbox"]:checked {
-    box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5), 10px 10px 15px rgba(70, 70, 70, 0.12), inset -10px -10px 15px rgba(255, 255, 255, 0.5), inset 10px 10px 15px rgba(70, 70, 70, 0.12);
+    box-shadow: var(--global-neu-box-shadow), inset -10px -10px 15px rgba(255, 255, 255, 0.5), inset 10px 10px 15px rgba(70, 70, 70, 0.12);
 }
 
 input[type="checkbox"]:checked:after {
@@ -102,7 +104,7 @@ input[type="checkbox"]:checked:after {
     position: relative;
     margin: 10px;
     padding: 10px;
-    box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5), 10px 10px 15px rgba(70, 70, 70, 0.12);
+    box-shadow: var(--global-neu-box-shadow);
     border-radius: 20px;
 }
 
@@ -116,11 +118,12 @@ input[type="checkbox"]:checked:after {
 
 .neu-btn {
     margin: 5px;
-    padding: 5px;
+    padding: 10px;
     font-size: 1em;
+    font-weight: 600;
+    color: var(--global-neu-font-dark);
     border: none;
     outline: none;
-    color: white;
     border-radius: 20px;
     box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.9), 10px 10px 15px rgba(70, 70, 70, 0.3);
 }
@@ -209,12 +212,6 @@ input[type="checkbox"]:checked:after {
     display: flex;
     flex-wrap: wrap;
     max-width: 320px;
-    /* background: #2d2d2d;
-    border: 1px solid #000; */
-}
-
-.tp-box>*::selection {
-    background: transparent;
 }
 
 #tp-pop .tp {
@@ -236,9 +233,9 @@ input[type="checkbox"]:checked:after {
 .tp-down {
     font-size: 32px;
     font-weight: bold;
-    color: #2d2d2d;
+    color: var(--global-neu-font-dark);
     padding: 10px 0;
-    box-shadow: -10px -10px 15px rgba(255, 255, 255, 0.5), 10px 10px 15px rgba(70, 70, 70, 0.12);
+    box-shadow: var(--global-neu-box-shadow);
     cursor: pointer;
 }
 
@@ -250,21 +247,7 @@ input[type="checkbox"]:checked:after {
     padding: 5px;
     text-align: center;
     font-size: 22px;
+    font-weight: 600;
     margin: 5px;
-    /* box-shadow: inset -10px -10px 15px rgba(255, 255, 255, 0.5),
-    inset 10px 10px 15px rgba(70, 70, 70, 0.12);
-    border-radius: 20px; */
-}
-
-
-/* (D) OK BUTTON */
-
-.tp-ok {
-    width: 100%;
-    background: #ce3535;
-    color: #fff;
-    border: 0;
-    padding: 15px 0;
-    margin: 10px;
-    cursor: pointer;
+    color: var(--global-neu-font-dark);
 }

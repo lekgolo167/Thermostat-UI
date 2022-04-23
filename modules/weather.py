@@ -99,4 +99,3 @@ def weather_data_from_file():
             dailyUVindex.append(hourData['uvIndex'])
 
         return dailyTemperatures, dailyUVindex
-    print("Failed to load file")

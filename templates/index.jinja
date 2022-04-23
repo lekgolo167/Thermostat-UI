@@ -34,8 +34,9 @@
                 <input type="text" id="sel_time" hidden="true" />
                 <div id="time_picker">
                 </div>
-                <button class="neu-btn" style="color: gray" onclick="updateCycle(0)">Add</button>
-                <button class="neu-btn" style="color: gray" onclick="setTemporaryTemp()">Set</button>
+                <div class="neu"></div>
+                <button class="neu-btn" onclick="updateCycle(0)">Add Cycle</button>
+                <button class="neu-btn" onclick="setTemporaryTemp()">Set Temporary</button>
             </div>
         </div>
         <div class="neu">
@@ -57,7 +58,7 @@
                         <div class="column">
                             <div >
                                 <i class="fas fa-thermometer-half"></i>
-                                <label>{{ cycles[i].t }} F°</label>
+                                <label>{{ cycles[i].t|int }} F°</label>
                             </div>
                         </div>
                         <div class="column">
@@ -109,6 +110,30 @@
         </form>
         </div>
         <script>
+            let socket = new WebSocket('ws://192.168.0.238:5000/mysocket')
+            socket.onopen = function(e) {
+  alert("[open] Connection established");
+  alert("Sending to server");
+  //socket.send("My name is John");
+};
+
+socket.onmessage = function(event) {
+  alert(`[message] Data received from server: ${event.data}`);
+};
+
+socket.onclose = function(event) {
+  if (event.wasClean) {
+    alert(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+  } else {
+    // e.g. server process killed or network down
+    // event.code is usually 1006 in this case
+    alert('[close] Connection died');
+  }
+};
+
+socket.onerror = function(error) {
+  alert(`[error] ${error.message}`);
+};
             var slider = document.getElementById("temp-slider");
             var output = document.getElementById("set-temp");
             //output.innerHTML = slider.value;

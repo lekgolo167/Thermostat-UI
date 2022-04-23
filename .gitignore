@@ -1,7 +1,7 @@
 __pycache__/
 .vscode/*
 *.db
-key.txt
+config.json
 *.code-workspace
 *.pyc
 *.o

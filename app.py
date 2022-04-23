@@ -3,15 +3,17 @@ from flask import Flask, render_template, jsonify, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, time, date
 from flask_marshmallow import Marshmallow
+from flask_sock import Sock
 from sqlalchemy import Column, Integer, String, Float, DateTime
 import time as cTime
-import socket
 import argparse
 
+from modules.connectionManager import ConnectionManager
 from modules.cachedController import ChachedDaysController
 from modules.weather import get_weather_forecast
 
 app = Flask(__name__)
+socky = Sock(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///schedule.db'
 
 db = SQLAlchemy(app)
@@ -85,16 +87,6 @@ def sort(cycles):
 def get_cycles(day):
 
     return sort(Cycle.query.filter_by(d=day).all())
-MSG_TEMP = 1
-MSG_SCHED_UPDATE = 2
-MSG_NODE_RED = 3
-MSG_FLASK = 4
-MSG_SERVER_UP = 5
-
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-thermostat_ip_addr = None
-thermostat_ip_addr = socket.gethostbyname('arduino-88fc')
-sock.sendto(bytes(str(MSG_SERVER_UP), 'utf-8'), (thermostat_ip_addr, 2390))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', '-d', action='store_true', default=False,
@@ -102,8 +94,8 @@ parser.add_argument('--debug', '-d', action='store_true', default=False,
 argument = parser.parse_args()
 DEBUG_ENABLED = bool(argument.debug)
 
-days_controller = ChachedDaysController(get_cycles, DEBUG_ENABLED)
-
+days_controller = ChachedDaysController(get_cycles, 'config.json', DEBUG_ENABLED)
+connection_manager = ConnectionManager('config.json')
 
 @app.route('/', methods=['GET'])
 def index():
@@ -119,12 +111,15 @@ def index():
     return render_template("index.jinja", cycles=cycles, days=DAYS, selDay=sel_day,
                             runtime=day.runtime, today=day.days_date, startTemp=day.start_temperature)
 
+@socky.route('/mysocket')
+def mysocket(ws):
+    print('this is my socket')
+    ws.close()
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
-
-    sock.sendto(bytes(str(4), 'utf-8'), (thermostat_ip_addr, 2391))
-    return redirect('/')
+    connection_manager.heartbeat()
+    return 'healthy'
 
 @app.route('/plot', methods=['GET'])
 def plot():
@@ -176,7 +171,7 @@ def getTemporary():
 def setTemporaryTemp(tmp):
     
     days_controller.temporary_temperature = float(tmp)
-    sock.sendto(bytes(str(1), 'utf-8'), (thermostat_ip_addr, 2390))
+    connection_manager.updatedTemporary()
     return redirect('/')
 
 @app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
@@ -189,7 +184,7 @@ def newCycle(t, h, m):
     try:
         db.session.add(new_cycle)
         db.session.commit()
-        sock.sendto(bytes(str(2), 'utf-8'), (thermostat_ip_addr, 2390))
+        connection_manager.updatedSchedule()
         update_simulation()
         return redirect('/')
     except:
@@ -206,11 +201,11 @@ def update(_id, t, h, m):
     try:
         updateDayIDs(cycle.d)
         db.session.commit()
-        sock.sendto(bytes(str(2), 'utf-8'), (thermostat_ip_addr, 2390))
+        connection_manager.updatedSchedule()
         update_simulation()
         return redirect('/')
     except:
-        return 'Faile to update cycle'
+        return 'Failed to update cycle'
 
 
 @app.route('/delete/<int:id>')
@@ -221,7 +216,7 @@ def delete(id):
         updateDayIDs(cycle.d)
         db.session.delete(cycle)
         db.session.commit()
-        sock.sendto(bytes(str(2), 'utf-8'), (thermostat_ip_addr, 2390))
+        connection_manager.updatedSchedule()
         update_simulation()
         return redirect('/')
     except:

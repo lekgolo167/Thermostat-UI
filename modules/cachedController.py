@@ -1,16 +1,26 @@
 from datetime import datetime, timedelta, date
+from distutils.command.config import config
 import time as cTime
+import json
 
 from modules.model import simulate
 from modules.weather import get_weather_data, weather_data_from_file
-#from modules.simulation_cpp import simulation
+try:
+	from modules.simulation_cpp import simulation
+except:
+	pass
 
 class ChachedDaysController():
-	def __init__(self, get_cycles, debug=False):
-		with open("key.txt", 'r') as f:
-			self.apiKey = f.readline().rstrip()
-			self.lat = f.readline().rstrip()
-			self.lon = f.readline().rstrip()
+	def __init__(self, get_cycles, config_file_path, debug=False):
+		with open(config_file_path, 'r') as config_file:
+			config_obj = json.loads(config_file.read())
+			self.apiKey = config_obj.get('api-key', 'null')
+			self.lat = str(config_obj.get('lat', 0.0))
+			self.lon = str(config_obj.get('lon', 0.0))
+			if config_obj.get('use-cpp-sim', False):
+				self.simulate = simulation.simulate
+			else:
+				self.simulate = simulate
 		self.debug = debug
 		self.days_data = [DayData(d) for d in range(8)]
 		self.selected_day = 1
@@ -91,9 +101,7 @@ class ChachedDaysController():
 		print("UPDATING INSIDE TEMPERATURES FOR: ", day.days_date)
 
 		day.g_inside_temperatures = []
-		# C++ version 
-		#sim_inside_t, day.runtime = simulation.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
-		sim_inside_t, day.runtime = simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
+		sim_inside_t, day.runtime = self.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
 
 		for inside_t, hr in sim_inside_t[::2]:
 			h = int(hr)

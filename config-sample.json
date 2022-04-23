@@ -1,0 +1,11 @@
+{
+    "thermostat-hostname": "arduino-88fc",
+    "thermostat-hb-port": 2391,
+    "thermostat-listen-port": 2390,
+    "max-settable-temperature": 85.0,
+    "min-settable-temperature": 50.0,
+    "api-key": "None",
+    "lat": 0.0,
+    "lon": 0.0,
+    "use-cpp-sim": false
+}
