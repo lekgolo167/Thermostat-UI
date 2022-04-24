@@ -6,4 +6,5 @@ config.json
 *.pyc
 *.o
 *.so
+*/.ipynb_checkpoints/*
 pylintrc
