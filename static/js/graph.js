@@ -1,12 +1,12 @@
-function httpGetAsync(theUrl, callback) {
-    let xmlHttpReq = new XMLHttpRequest();
-    xmlHttpReq.onreadystatechange = function() {
-        if (xmlHttpReq.readyState == 4 && xmlHttpReq.status == 200)
-            callback(JSON.parse(xmlHttpReq.responseText));
-    }
-    xmlHttpReq.open("GET", theUrl, true); // true for asynchronous 
-    xmlHttpReq.send(null);
-}
+// function httpGetAsync(theUrl, callback) {
+//     let xmlHttpReq = new XMLHttpRequest();
+//     xmlHttpReq.onreadystatechange = function() {
+//         if (xmlHttpReq.readyState == 4 && xmlHttpReq.status == 200)
+//             callback(JSON.parse(xmlHttpReq.responseText));
+//     }
+//     xmlHttpReq.open("GET", theUrl, true); // true for asynchronous 
+//     xmlHttpReq.send(null);
+// }
 
 window.onload = function() {
 

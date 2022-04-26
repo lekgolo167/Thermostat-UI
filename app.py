@@ -1,92 +1,25 @@
 
 from flask import Flask, render_template, jsonify, request, redirect
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, time, date
-from flask_marshmallow import Marshmallow
-from flask_sock import Sock
-from sqlalchemy import Column, Integer, String, Float, DateTime
 import time as cTime
 import argparse
 
+from database import db, ma, db_cli, CyclesSchema, DayIDsSchema
+from modules.cyclesController import CyclesController
 from modules.connectionManager import ConnectionManager
 from modules.cachedController import ChachedDaysController
 from modules.weather import get_weather_forecast
 
 app = Flask(__name__)
-socky = Sock(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///schedule.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
-ma = Marshmallow(app)
-
-
-@app.cli.command('db_create')
-def db_create():
-    db.create_all()
-    print('Database created!')
-
-@app.cli.command('db_drop')
-def db_drop():
-    db.drop_all()
-    print('Database dropped')
-
-@app.cli.command('db_seed')
-def db_seed():
-    
-    for day in range(0, 8):
-        cycle = Cycle(d=day,h=0, m=0,t=60.0)
-        db.session.add(cycle)
-
-    dayIDs = DayIDs(sun=1,mon=1,tue=1,wed=1,thu=1,fri=1,sat=1)
-    db.session.add(dayIDs)
-
-    db.session.commit()
-    print('Database seeded!')
-
-class Cycle(db.Model):
-    id = Column(Integer, primary_key=True)
-    d = Column(Integer)
-    h = Column(Integer)
-    m = Column(Integer)
-    t = Column(Float)
-
-    def __repr__(self):
-        return str(self.d) + ' -> h:' + str(self.h) + ':' + str(self.m) + ', @%.1fF°' % self.t
-
-class DayIDs(db.Model):
-    id = Column(Integer, primary_key=True)
-    sun = Column(Integer)
-    mon = Column(Integer)
-    tue = Column(Integer)
-    wed = Column(Integer)
-    thu = Column(Integer)
-    fri = Column(Integer)
-    sat = Column(Integer)
-
-    def __repr__(self):
-        return "0:{},1:{},2:{},3:{},4:{},5{},6{}".format(self.sun,self.mon,self.tue,self.wed,self.thu,self.fri,self.sat)
-
-class CyclesSchema(ma.Schema):
-    class Meta:
-        fields = ('id','h','m','t')
-
-class DayIDsSchema(ma.Schema):
-    class Meta:
-        fields = ('sun','mon','tue','wed','thu','fri','sat')
-
+db.init_app(app)
+ma.init_app(app)
 cycles_schema = CyclesSchema(many=True)
 dayIDs_schema = DayIDsSchema()
+app.register_blueprint(db_cli)
 
 DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', "Try"]
-
-def sort(cycles):
-    cycles.sort(key=lambda x: time(hour=x.h,minute=x.m))
-
-    return cycles
-
-def get_cycles(day):
-
-    return sort(Cycle.query.filter_by(d=day).all())
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', '-d', action='store_true', default=False,
@@ -94,27 +27,30 @@ parser.add_argument('--debug', '-d', action='store_true', default=False,
 argument = parser.parse_args()
 DEBUG_ENABLED = bool(argument.debug)
 
-days_controller = ChachedDaysController(get_cycles, 'config.json', DEBUG_ENABLED)
+cycles_controller = CyclesController('config.json')
+days_controller = ChachedDaysController('config.json', DEBUG_ENABLED)
 connection_manager = ConnectionManager('config.json')
 
 @app.route('/', methods=['GET'])
 def index():
     
     days_controller.check_dates()
+    days_controller.init(cycles_controller.get_cycles)
     sel_day = days_controller.selected_day
     
-    cycles = Cycle.query.filter_by(d=sel_day).all()
-    cycles = sort(cycles)
+    cycles = cycles_controller.get_cycles(sel_day)
 
     day = days_controller.get_day()
+    min_t, mid_t, max_t = cycles_controller.get_min_mid_max()
 
-    return render_template("index.jinja", cycles=cycles, days=DAYS, selDay=sel_day,
+    return render_template("index.jinja", cycles=cycles, days=DAYS, selDay=sel_day, min_t=min_t, mid_t=mid_t, max_t=max_t,
                             runtime=day.runtime, today=day.days_date, startTemp=day.start_temperature)
 
-@socky.route('/mysocket')
-def mysocket(ws):
-    print('this is my socket')
-    ws.close()
+@app.route('/simParams')
+def simParams():
+    print('reloading simulation parameters')
+    days_controller.update_sim_params()
+    return '{}'
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
@@ -134,19 +70,20 @@ def getForecast():
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
 
-    cycles = sort(Cycle.query.filter_by(d=day).all())
+    cycles = cycles_controller.get_cycles(day)
+    print(cycles)
     return jsonify(cycles=cycles_schema.dump(cycles))
 
 @app.route('/setDay/<int:day>', methods=['GET'])
 def setDay(day):
 
     days_controller.selected_day = day
-    return redirect('/')
+    return '{}'
 
 @app.route('/getDayIDs', methods=['GET'])
 def getDayIDs():
 
-    dayIDs = DayIDs.query.one()
+    dayIDs = cycles_controller.get_day_ids()
 
     return jsonify(dayIDs_schema.dump(dayIDs))
 
@@ -169,57 +106,33 @@ def getTemporary():
 
 @app.route('/setTemporaryTemp/<int:tmp>', methods=['GET'])
 def setTemporaryTemp(tmp):
-    
     days_controller.temporary_temperature = float(tmp)
     connection_manager.updatedTemporary()
-    return redirect('/')
+    return '{}'
 
 @app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
 def newCycle(t, h, m):
     sel_day = days_controller.selected_day
-    updateDayIDs(sel_day)
-
-    new_cycle = Cycle(d=sel_day,h=h,m=m,t=t)
-    print(new_cycle)
-    try:
-        db.session.add(new_cycle)
-        db.session.commit()
-        connection_manager.updatedSchedule()
-        update_simulation()
-        return redirect('/')
-    except:
-        return 'Could not add cycle to database'
+    cycles_controller.new_cycle(sel_day, t, h, m)
+    connection_manager.updatedSchedule()
+    update_simulation()
+    return '{}'
 
 @app.route('/update/<int:_id>/<int:t>/<int:h>/<int:m>', methods=['GET', 'POST'])
 def update(_id, t, h, m):
-    cycle = Cycle.query.get_or_404(_id)
-
-    cycle.h = h
-    cycle.m = m
-    cycle.t = t
-
-    try:
-        updateDayIDs(cycle.d)
-        db.session.commit()
-        connection_manager.updatedSchedule()
-        update_simulation()
-        return redirect('/')
-    except:
-        return 'Failed to update cycle'
+    cycles_controller.update_cycles(_id, t, h, m)
+    connection_manager.updatedSchedule()
+    update_simulation()
+    return '{}'
 
 
 @app.route('/delete/<int:id>')
 def delete(id):
-    cycle = Cycle.query.get_or_404(id)
-
-    try:
-        updateDayIDs(cycle.d)
-        db.session.delete(cycle)
-        db.session.commit()
+    if cycles_controller.delete_cycle(id):
         connection_manager.updatedSchedule()
         update_simulation()
-        return redirect('/')
-    except:
+        return '{}'
+    else:
         return 'Could not delete cycle'
 
 @app.route('/copyDayTo', methods=['POST'])
@@ -227,24 +140,10 @@ def copyDayTo():
     for day in range(len(DAYS)):
         checked = request.form.get(DAYS[day])
         if checked:
-
-            cycles = Cycle.query.filter_by(d=day).all()
-            # remove all cycles for that day
-            for cycle in cycles:
-                db.session.delete(cycle)
-            
-            cycles = Cycle.query.filter_by(d=days_controller.selected_day).all()
-            # copy all cycles for that day
-            for cycle in cycles:
-                copied_cycle = Cycle(d=day,h=cycle.h,m=cycle.m,t=cycle.t)
-                db.session.add(copied_cycle)
-
-            # save and update
-            db.session.commit()
-            updateDayIDs(day)
+            cycles_controller.copy_day_to(days_controller.selected_day, day)
             update_simulation(day)
 
-    return redirect('/')
+    return '{}'
 
 @app.route('/setDate', methods=['POST'])
 def setDate():
@@ -261,32 +160,11 @@ def setStartTemp():
     
     return redirect('/')
 
-def updateDayIDs(day):
-    dayIDs = DayIDs.query.one()
-
-    if day == 0:
-        dayIDs.sun += 1
-    elif day == 1:
-        dayIDs.mon += 1
-    elif day == 2:
-        dayIDs.tue += 1
-    elif day == 3:
-        dayIDs.wed += 1
-    elif day == 4:
-        dayIDs.thu += 1
-    elif day == 5:
-        dayIDs.fri += 1
-    elif day == 6:
-        dayIDs.sat += 1
-
-    db.session.commit()
-
 def update_simulation(day=None):
     if day is None:
         day = days_controller.selected_day
-    cycles = sort(Cycle.query.filter_by(d=day).all())
+    cycles = cycles_controller.get_cycles(day)
     days_controller.update_schedule(cycles, days_controller.days_data[day])
-
 
 if __name__ == "__main__":
     app.run(debug=DEBUG_ENABLED, host='0.0.0.0')

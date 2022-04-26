@@ -9,8 +9,8 @@
             {% for day in range(0, 8)%}
             <div class="column">
                 {% if day == selDay %}
-                <input type="checkbox" class={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}" checked> {% else %}
-                <input type="checkbox" class={{days[day]}} onclick=" window.location.href='/setDay/'+{{day}}"> {% endif %}
+                <input type="checkbox" class={{days[day]}} onclick="setDay({{day}})" checked> {% else %}
+                <input type="checkbox" class={{days[day]}} onclick="setDay({{day}})"> {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -20,14 +20,14 @@
 
 <div class="container">
     <div class="neu-container">
-        <h1 style="text-align: top">Az Thermostat</h1>
+        <h1 style="text-align: top">Enxor Thermostat</h1>
 
         <div class="neu">
             <div class="neu-inset">
-                <output id="set-temp">72</output>
+                <output id="set-temp">{{mid_t}}</output>
             </div>
             <div style="padding: 10px; margin-bottom: 10px">
-                <input type="range" class="neu-range" id="temp-slider" min="1" max="100" value="50" oninput="updateSlider(this.value)">
+                <input type="range" class="neu-range" id="temp-slider" min="1" max="100" value="50"">
             </div>
 
             <div align="center">
@@ -52,7 +52,15 @@
                         <div class="column">
                             <div >
                                 <i class="far fa-clock"></i>
-                                <label>{{ cycles[i].h }}:{{ cycles[i].m }}</label>
+                                {% if cycles[i].h > 12 %}
+                                <label>{{ cycles[i].h - 12 }}:{{ '%02d' | format(cycles[i].m) }} pm</label>
+                                {% elif cycles[i].h == 12 %}
+                                <label>{{ cycles[i].h }}:{{ '%02d' | format(cycles[i].m) }} pm</label>
+                                {% elif cycles[i].h == 0 %}
+                                <label>{{ cycles[i].h + 12 }}:{{ '%02d' | format(cycles[i].m) }} am</label>
+                                {% else %}
+                                <label>{{ cycles[i].h }}:{{ '%02d' | format(cycles[i].m) }} am</label>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="column">
@@ -65,7 +73,9 @@
                             <button class="neu-btn update-btn" onclick="updateCycle({{cycles[i].id}})">Update</button>
                         </div>
                         <div class="column">
-                            <button class="neu-btn delete-btn" onclick="window.location.href='/delete/{{cycles[i].id}}'">Delete</button>
+                            {% if i != 0%}
+                            <button class="neu-btn delete-btn" onclick="deleteCycle({{cycles[i].id}})">Delete</button>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -78,7 +88,7 @@
     <div class="neu">
         <canvas id="scheduleGraph" style="height: 370px; width: 100%;"></canvas>
     </div>
-        <h2 style="text-align: center">Predicted Runtime: {{"%.2f"|format(runtime)}} Hrs.</h2>
+        <h2 style="text-align: center">Estimated Runtime: {{"%.2f"|format(runtime)}} Hrs.</h2>
         <label for="simDay">Simulation date:</label>
 
         <form name="datePicker" action="/setDate" method="POST">
@@ -110,56 +120,15 @@
         </form>
         </div>
         <script>
-            var slider = document.getElementById("temp-slider");
-            var output = document.getElementById("set-temp");
-            //output.innerHTML = slider.value;
-            slider.oninput = function() {
-                //output.innerHTML = this.value;
-            }
-            function temperatureSliderCallback() {
-                var x = slider.value;
-                var color = 'linear-gradient(90deg, #185ef0, #30cfd0 '+x+'%, #00000000 '+x+'%)';
-                slider.style.background = color;
-                var t = Math.trunc(map(x, 1, 100, 56, 90));
-                output.innerHTML = t;
-            }
-            slider.addEventListener("touchmove", temperatureSliderCallback, false);
-            slider.addEventListener("mousemove", temperatureSliderCallback, false);
 
-            function map(x, in_min, in_max, out_min, out_max) {
-                return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-            }
-            function setTemporaryTemp() {
-                let degrees = document.getElementById('set-temp').value;
-                window.location.href = '/setTemporaryTemp/' + degrees;
-            }
-            function updateCycle(id) {
-                let degrees = document.getElementById('set-temp').value;
-                let min = Number(document.getElementById('minute').value);
-                let hour = Number(document.getElementById('hour').value);
-                let ante = document.getElementById('ante').value;
-                if (ante === 'PM') {
-                    if (hour !== 12){
-                        hour += 12;
-                    }
-                } else if (hour === 12) {
-                    hour = 0;
-                }
-                if (id === 0) {
-                    window.location.href = '/newCycle/' + degrees + '/' + hour + '/' + min
-                } else {
-                    window.location.href = '/update/' + id + '/' + degrees + '/' + hour + '/' + min
-                }
-            }
-            window.addEventListener("load", function() {
-                tp.attach({
-                    target: "sel_time",
-                    wrap: "time_picker"
-                });
-            });
         </script>
 
     </div>
 </div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+var min_t = {{min_t}};
+var max_t = {{max_t}};
+</script>
 <script src="{{ url_for('static', filename='js/graph.js') }}"></script>
 {% endblock %}

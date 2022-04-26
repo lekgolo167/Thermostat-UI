@@ -87,7 +87,7 @@ def get_weather_data(today, apiKey, lat, lon):
 
 def weather_data_from_file():
     print("Loading weather data from file")
-    with open('archive/weather.json', 'r') as infile:
+    with open('archive/2022-4-24.json', 'r') as infile:
         text = infile.read()
         data = json.loads(text)
         hourlyData = data['hourly']['data']

@@ -1,111 +1,99 @@
-#/usr/bin/python
-import math
+import json
+from collections import deque
 
-time_hr = 0.0
-delta_time = 0.01
-BTU = 25.0
-heat_on = False
-thresh = 2.0
-runtime = 0.0
-sched = []
-x1 = 0.0
+class HeatingModel():
+	def __init__(self, config_file_path) -> None:
+		vals = self.load_config(config_file_path)
+		self.set_values(vals)
+		self.runtime = 0.0
 
-def simulate(start_temperature, sched,outsideTemperature, uvIndex):
-  global time_hr, heat_on, runtime
-  # time of day in hours
-  time_hr = 0.0
-  # if the furnace is on
-  heat_on = False
-  last_Heating = False
-  # insulation
-  k1 = 0.08 # wall
-  k2 = 0.18 # cieling
-  k3 = 0.03 # roof
-  # starting temperatures
-  inside_t = start_temperature
-  attic_t = start_temperature - 4.0
-  
-  # used for heat capacity calculations
-  N = 250
-  index = 0
-  accum = (inside_t - 2.0)*N
-  heat_retension = [inside_t - 2.0 for x in range(0,N)]
-  # data to return
-  save_every_other = True
-  runtime = 0.0
-  data = []
+	def load_config(self, config_file_path):
+		with open(config_file_path, 'r') as config_file:
+			config_obj = json.loads(config_file.read())
+			return config_obj
 
-  while time_hr < 23.99:
-    # extract variables
-    hr = int(time_hr)
-    T = outsideTemperature[hr]
-    uv = uvIndex[hr]
+	def set_values(self, vals) -> None:
+			self.btu = vals.get('btu', 25.0)
+			self.delta_time = vals.get('delta-time', 0.01)
+			self.thresh_upper = vals.get('thresh-upper', 1.0)
+			self.thresh_lower = vals.get('thresh-lower', 2.0)
+			self.sample_avg = vals.get('sample-avg', 10)
+			self.k1 = vals.get('k1', 0.08) # wall
+			self.k2 = vals.get('k2', 0.18) # cieling
+			self.k3 = vals.get('k3', 0.03) # roof
+			self.f1 = vals.get('f1', 0.2) # uv walls
+			self.f2 = vals.get('f2', 0.9) # uv roof
+			self.rolling_avg_size = vals.get('rolling-avg-size', 250)
 
-    # not every data point needs to be graphed
-    if save_every_other:
-      data.append((inside_t, time_hr))
-    save_every_other = not save_every_other
+	def get_target_temp(self, time_hr, schedule) -> float:
+		target = 0.0
+		for _time, set_temp in schedule:
+			if _time > time_hr:
+				break
+			target = set_temp
 
-    # calculate change in temperature
-    delta_t1 = k1*(T - inside_t) + k2*(attic_t - inside_t) + H(inside_t, sched) + uv*0.2
-    delta_t2 = k2*(inside_t - attic_t) + k3*(T - attic_t) + uv *0.9
-    
-    # scale the change in temperature
-    delta_t1 *= delta_time
-    delta_t2 *= delta_time
+		return target
 
-    # heat_retention update rolling average
-    if index >= N:
-      index = 0
-    old = heat_retension[index]
-    heat_retension[index] = inside_t
-    accum = accum - old + inside_t
-    if not heat_on:
-      pen = (accum/N - inside_t) * delta_time
-      delta_t1 += pen*2.7
+	def H(self, inside_t, target, furnace_on) -> float:
+		if inside_t < target - self.thresh_lower or (furnace_on and inside_t < target + self.thresh_upper):
+			self.runtime += self.delta_time
+			return (self.btu, True)
+		else:
+			return (0.0, False)
 
-    # add the change in temperature plus heat from the neighbors wall
-    inside_t += delta_t1 + 0.0005*(72-inside_t)
-    attic_t += delta_t2 + 0.0005*(69-attic_t)
+	def simulate(self, start_temperature, sched,outsideTemperature, uvIndex):
+		# time of day in hours
+		time_hr = 0.0
+		# if the furnace is on
+		furnace_on = False
 
-    # if the heater just turned off, add a little time for it to shutdown
-    if not heat_on and last_Heating:
-      runtime += 0.01
+		# starting temperatures
+		inside_t = start_temperature
+		attic_t = start_temperature - 4.0
+		
+		# used for heat capacity calculations
+		accum = (inside_t - 2.0)*self.rolling_avg_size
+		heat_retension = deque([inside_t - 2.0 for _ in range(0, self.rolling_avg_size)])
+		sample_arr = deque([inside_t for _ in range(0, self.sample_avg)])
 
-    # increment time
-    time_hr += delta_time
-    last_Heating = heat_on
-    index += 1
+		# data to return
+		self.runtime = 0.0
+		data = []
 
-  return data, runtime
+		while time_hr < 24.0:
+			# extract variables
+			hr = int(time_hr)
+			outside_t = outsideTemperature[hr]
+			uv = uvIndex[hr]
 
+			data.append((inside_t, time_hr))
 
-def findSCH(sched):
-  global time_hr
-  target = 0.0
-  for _time, set_temp in sched:
+			# heat_retention update rolling average
+			old = heat_retension.popleft()
+			heat_retension.append(inside_t)
+			accum = accum - old + inside_t
 
-    if _time > time_hr:
-      break
-    target = set_temp
+			sample_arr.popleft()
+			sample_arr.append(inside_t)
+			inside_avg = sum(sample_arr)/self.sample_avg
+			
+			target = self.get_target_temp(time_hr, sched)
+			h, furnace_on = self.H(inside_avg, target, furnace_on)
+			c = (accum/self.rolling_avg_size - inside_t)
 
-  return target
+			# calculate change in temperature
+			delta_t1 = self.k1*(outside_t - inside_t) + self.k2*(attic_t - inside_t) + h + uv*self.f1 + c
+			delta_t2 = self.k2*(inside_t - attic_t) + self.k3*(outside_t - attic_t) + uv*self.f2
+			
+			# scale the change in temperature
+			delta_t1 *= self.delta_time
+			delta_t2 *= self.delta_time
 
+			# add the change in temperature
+			inside_t += delta_t1
+			attic_t += delta_t2
 
-def H(temp, sched):
-  global heat_on, delta_time, runtime, BTU
-  target = findSCH(sched)
+			# increment time
+			time_hr += self.delta_time
 
-  if temp <= target - thresh:
-    runtime += delta_time
-    heat_on = True
-    return BTU
-
-  elif temp <= target + thresh and heat_on:
-    runtime += delta_time
-    return BTU
-
-  else:
-    heat_on = False
-
-    return 0
+		return data, self.runtime

@@ -3,7 +3,7 @@ from distutils.command.config import config
 import time as cTime
 import json
 
-from modules.model import simulate
+from modules.model import HeatingModel
 from modules.weather import get_weather_data, weather_data_from_file
 try:
 	from modules.simulation_cpp import simulation
@@ -11,21 +11,27 @@ except:
 	pass
 
 class ChachedDaysController():
-	def __init__(self, get_cycles, config_file_path, debug=False):
+	def __init__(self, config_file_path, debug=False):
 		with open(config_file_path, 'r') as config_file:
 			config_obj = json.loads(config_file.read())
 			self.apiKey = config_obj.get('api-key', 'null')
 			self.lat = str(config_obj.get('lat', 0.0))
 			self.lon = str(config_obj.get('lon', 0.0))
-			if config_obj.get('use-cpp-sim', False):
-				self.simulate = simulation.simulate
-			else:
-				self.simulate = simulate
+			# if config_obj.get('use-cpp-sim', False):
+			# 	self.simulate = simulation.simulate
+			# else:
+			# 	self.simulate = simulate
+		self.heating_model = HeatingModel(config_file_path)
 		self.debug = debug
 		self.days_data = [DayData(d) for d in range(8)]
 		self.selected_day = 1
 		self.temporary_temperature = 0.0
-
+		self.setup = False
+	
+	def init(self, get_cycles):
+		if self.setup:
+			return
+		self.setup = True
 		today = date.today().strftime('%Y-%m-%d')
 		for x in range(0,8):
 			day = self.days_data[x]
@@ -33,7 +39,11 @@ class ChachedDaysController():
 			self.update_weather(today, day)
 			cycles = get_cycles(x)
 			self.update_schedule(cycles, day)
-	
+
+	def update_sim_params(self):
+		vals = self.heating_model.load_config('config.json')
+		self.heating_model.set_values(vals)
+
 	def get_day(self):
 		return self.days_data[self.selected_day]
 
@@ -43,18 +53,17 @@ class ChachedDaysController():
 		self.update_inside_temperature(day)
 	
 	def check_dates(self):
-		print("CHECKING DATES")
+		#print("CHECKING DATES")
 		today = date.today().strftime('%Y-%m-%d')
 		for day in range(0,7):
 			if self.days_data[day].last_updated < int(cTime.time()) - 43200: # 12 hrs
-				
 				self.update_weather(today, self.days_data[day])
 				self.update_inside_temperature(self.days_data[day])
 
 	def update_schedule(self, cycles, day=None):
 		if day is None:
 			day = self.days_data[self.selected_day]
-		print("UPDATING SCHEDULE FOR: ", day.days_date)
+		#print("UPDATING SCHEDULE FOR: ", day.days_date)
 
 		day.g_schedule = []
 		day.sim_schedule = []
@@ -66,7 +75,7 @@ class ChachedDaysController():
 			hr = cycle.h + (cycle.m / 60)
 			day.sim_schedule.append((hr, cycle.t))
 
-		# This is so the canvasjs shows the graph all the way to the end
+		# This is so the chartjs shows the graph all the way to the end
 		day.g_schedule.append({'x': '23:59', 'y': 60.0})
 
 		self.update_inside_temperature(day)
@@ -74,7 +83,7 @@ class ChachedDaysController():
 	def update_weather(self, _date, day=None):
 		if day is None:
 			day = self.days_data[self.selected_day]
-		print("UPDATING WEATHER FOR: ", day.days_date)
+		#print("UPDATING WEATHER FOR: ", day.days_date)
 
 		outside_t = []
 		uv =[]
@@ -98,12 +107,12 @@ class ChachedDaysController():
 	def update_inside_temperature(self, day=None):
 		if day is None:
 			day = self.days_data[self.selected_day]
-		print("UPDATING INSIDE TEMPERATURES FOR: ", day.days_date)
+		#print("UPDATING INSIDE TEMPERATURES FOR: ", day.days_date)
 
 		day.g_inside_temperatures = []
-		sim_inside_t, day.runtime = self.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
+		sim_inside_t, day.runtime = self.heating_model.simulate(day.start_temperature, day.sim_schedule, day.outside_temperatures, day.uv_indices)
 
-		for inside_t, hr in sim_inside_t[::2]:
+		for inside_t, hr in sim_inside_t[::3]:
 			h = int(hr)
 			m = int((hr - h)*60)
 
