@@ -106,8 +106,9 @@ def getTemporary():
 
 @app.route('/setTemporaryTemp/<int:tmp>', methods=['GET'])
 def setTemporaryTemp(tmp):
-    days_controller.temporary_temperature = float(tmp)
-    connection_manager.updatedTemporary()
+    if cycles_controller.validate_range(tmp):
+        days_controller.temporary_temperature = float(tmp)
+        connection_manager.updatedTemporary()
     return '{}'
 
 @app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])

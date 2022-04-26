@@ -23,6 +23,9 @@ class CyclesController():
 		cycles.sort(key=lambda x: time(hour=x.h,minute=x.m))
 		return cycles
 
+	def validate_range(self, temperature):
+		return temperature >= self.min_t and temperature <= self.max_t
+
 	def _update_day_ids(self, day):
 		dayIDs = DayIDs.query.one()
 
@@ -44,8 +47,12 @@ class CyclesController():
 		db.session.commit()
 
 	def update_cycles(self, id, t, h, m):
+		if not self.validate_range(t):
+			return '{}'
 		cycle = Cycle.query.get_or_404(id)
-
+		if cycle.h == 0 and cycle.m == 0:
+			if not (h == 0 and m == 0):
+				return '{}'
 		cycle.h = h
 		cycle.m = m
 		cycle.t = t
@@ -61,6 +68,8 @@ class CyclesController():
 		cycle = Cycle.query.get_or_404(id)
 
 		try:
+			if cycle.h == 0 and cycle.m == 0:
+				return '{}'
 			self._update_day_ids(cycle.d)
 			db.session.delete(cycle)
 			db.session.commit()
@@ -69,7 +78,11 @@ class CyclesController():
 			return 'Could not delete cycle'
 
 	def new_cycle(self, day, t, h, m):
+		if not self.validate_range(t):
+			return '{}'
 		new_cycle = Cycle(d=day,h=h,m=m,t=t)
+		if new_cycle.h == 0 and new_cycle.m == 0:
+				return '{}'
 		print(new_cycle)
 		try:
 			db.session.add(new_cycle)
