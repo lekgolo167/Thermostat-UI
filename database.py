@@ -6,19 +6,19 @@ from sqlalchemy import Column, Integer, String, Float, DateTime
 db = SQLAlchemy()
 ma = Marshmallow()
 
-db_cli = Blueprint('db_cli', __name__)
+db_cli = Blueprint('db_cli', __name__, cli_group='db')
 
-@db_cli.cli.command('db_create')
+@db_cli.cli.command('create')
 def db_create():
     db.create_all()
     print('Database created!')
 
-@db_cli.cli.command('db_drop')
+@db_cli.cli.command('drop')
 def db_drop():
     db.drop_all()
     print('Database dropped')
 
-@db_cli.cli.command('db_seed')
+@db_cli.cli.command('seed')
 def db_seed():
     
     for day in range(0, 8):

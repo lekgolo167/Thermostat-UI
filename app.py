@@ -1,7 +1,7 @@
 
 from flask import Flask, render_template, jsonify, request, redirect
 import time as cTime
-import argparse
+import json
 
 from database import db, ma, db_cli, CyclesSchema, DayIDsSchema
 from modules.cyclesController import CyclesController
@@ -17,15 +17,16 @@ db.init_app(app)
 ma.init_app(app)
 cycles_schema = CyclesSchema(many=True)
 dayIDs_schema = DayIDsSchema()
-app.register_blueprint(db_cli)
+app.register_blueprint(db_cli, cli_group='db')
 
 DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', "Try"]
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--debug', '-d', action='store_true', default=False,
-						help='Enables debugging which loads weather data from file rather than the API')
-argument = parser.parse_args()
-DEBUG_ENABLED = bool(argument.debug)
+DEBUG_ENABLED = False
+TIME_ZONE = 0
+with open('config.json', 'r') as config_file:
+    config_obj = json.loads(config_file.read())
+    DEBUG_ENABLED = config_obj.get('debug-enabled', False)
+    TIME_ZONE = config_obj.get('time-zone', 0)
 
 cycles_controller = CyclesController('config.json')
 days_controller = ChachedDaysController('config.json', DEBUG_ENABLED)
@@ -89,10 +90,10 @@ def getDayIDs():
 
 @app.route('/getEpoch', methods=['GET'])
 def getEpoch():
-    timezone = 25200 # 7 hours from GMT
+    timezone = TIME_ZONE
     is_dst = cTime.localtime().tm_isdst
     if is_dst == 1:
-        timezone -= 3600 # make it 6 hours for when daylight savings
+        timezone -= 3600 # make it minus one hour for daylight savings
 
     return jsonify(epoch=int(cTime.time()-timezone))
 
