@@ -19,8 +19,7 @@ class ConnectionManager():
 			self.thermostat_hostname = config_obj.get('thermostat-hostname', 'arduino-88fc')
 		
 		if self.find_thermostat():
-			pass
-			#self.sock.sendto(MSG_SERVER_UP, (self.thermostat_ip_addr, self.thermostat_port))
+			self.sock.sendto(MSG_SERVER_UP, (self.thermostat_ip_addr, self.thermostat_port))
 
 	def find_thermostat(self) -> bool:
 		if self.thermostat_found:

@@ -26,7 +26,7 @@ TIME_ZONE = 0
 with open('config.json', 'r') as config_file:
     config_obj = json.loads(config_file.read())
     DEBUG_ENABLED = config_obj.get('debug-enabled', False)
-    TIME_ZONE = config_obj.get('time-zone', 0)
+    TIME_ZONE = config_obj.get('time-zone-gmt', 0) * 3600 # convert to seconds
 
 cycles_controller = CyclesController('config.json')
 days_controller = ChachedDaysController('config.json', DEBUG_ENABLED)
@@ -72,14 +72,15 @@ def getForecast():
 def getCycles(day):
 
     cycles = cycles_controller.get_cycles(day)
-    print(cycles)
     return jsonify(cycles=cycles_schema.dump(cycles))
 
 @app.route('/setDay/<int:day>', methods=['GET'])
 def setDay(day):
-
-    days_controller.selected_day = day
-    return '{}'
+    if day >= 0 and day <= 7:
+        days_controller.selected_day = day
+        return '{}', 200
+    else:
+        return jsonify(message='Invalid day!'), 400
 
 @app.route('/getDayIDs', methods=['GET'])
 def getDayIDs():
@@ -110,32 +111,38 @@ def setTemporaryTemp(tmp):
     if cycles_controller.validate_range(tmp):
         days_controller.temporary_temperature = float(tmp)
         connection_manager.updatedTemporary()
-    return '{}'
+        return jsonify(message='Thermostat temperature has been set!'), 202
+    else:
+        return jsonify(message='Invalid temperature range!'), 400
 
 @app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
 def newCycle(t, h, m):
     sel_day = days_controller.selected_day
-    cycles_controller.new_cycle(sel_day, t, h, m)
-    connection_manager.updatedSchedule()
-    update_simulation()
-    return '{}'
+    valid, msg, status_code = cycles_controller.new_cycle(sel_day, t, h, m)
+    if valid:
+        connection_manager.updatedSchedule()
+        update_simulation()
+    
+    return jsonify(message=msg), status_code
 
 @app.route('/update/<int:_id>/<int:t>/<int:h>/<int:m>', methods=['GET', 'POST'])
 def update(_id, t, h, m):
-    cycles_controller.update_cycles(_id, t, h, m)
-    connection_manager.updatedSchedule()
-    update_simulation()
-    return '{}'
+    valid, msg, status_code = cycles_controller.update_cycles(_id, t, h, m)
+    if valid:
+        connection_manager.updatedSchedule()
+        update_simulation()
+    
+    return jsonify(message=msg), status_code
 
 
 @app.route('/delete/<int:id>')
 def delete(id):
-    if cycles_controller.delete_cycle(id):
+    valid, msg, status_code = cycles_controller.delete_cycle(id)
+    if valid:
         connection_manager.updatedSchedule()
         update_simulation()
-        return '{}'
-    else:
-        return 'Could not delete cycle'
+    
+    return jsonify(message=msg), status_code
 
 @app.route('/copyDayTo', methods=['POST'])
 def copyDayTo():

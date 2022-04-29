@@ -11,7 +11,7 @@
 window.onload = function() {
 
     httpGetAsync('/plot', function(result) {
-
+        result = JSON.parse(result.responseText)
         console.log(result.schedule);
         console.log(result.outside);
         console.log(result.inside);

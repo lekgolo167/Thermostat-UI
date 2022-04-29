@@ -1,14 +1,31 @@
 function httpGetAsync(theUrl, callback) {
     let xmlHttpReq = new XMLHttpRequest();
     xmlHttpReq.onreadystatechange = function() {
-        if (xmlHttpReq.readyState == 4 && xmlHttpReq.status == 200) {
+        if (xmlHttpReq.readyState == 4) {
             console.log(xmlHttpReq)
-            callback(JSON.parse(xmlHttpReq.responseText));
+            callback(xmlHttpReq);
         }
     }
     xmlHttpReq.open("GET", theUrl, true); // true for asynchronous 
     xmlHttpReq.send(null);
 }
+
+function handleResponse(response, reload) {
+
+    msg = JSON.parse(response.responseText)['message']
+    if (response.status < 400) {
+        console.log('success')
+        if (reload) {
+            Toast.showAfterReload(msg, 'success');
+            console.log('toast set......reloading')
+            history.go(0);
+        } else {
+            Toast.show(msg, 'success');
+        }
+    } else {
+        Toast.show(msg, 'error');
+    }
+};
 
 var slider = document.getElementById("temp-slider");
 var output = document.getElementById("set-temp");
@@ -31,6 +48,7 @@ function setTemporaryTemp() {
     let degrees = document.getElementById('set-temp').value;
     httpGetAsync('/setTemporaryTemp/' + degrees, function(result) {
         console.log(result);
+        handleResponse(result, false);
     });
 }
 
@@ -49,12 +67,12 @@ function updateCycle(id) {
     if (id === 0) {
         httpGetAsync('/newCycle/' + degrees + '/' + hour + '/' + min, function(result) {
             console.log(result);
-            location.reload()
+            handleResponse(result, true);
         });
     } else {
         httpGetAsync('/update/' + id + '/' + degrees + '/' + hour + '/' + min, function(result) {
             console.log(result);
-            location.reload()
+            handleResponse(result, true);
         });
     }
 }
@@ -62,7 +80,7 @@ function updateCycle(id) {
 function deleteCycle(id) {
     httpGetAsync('/delete/' + id, function(result) {
         console.log(result);
-        location.reload()
+        handleResponse(result, true);
     })
 }
 
