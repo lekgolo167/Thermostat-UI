@@ -47,7 +47,7 @@ class Cycle(db.Model):
     t = Column(Float)
 
     def __repr__(self):
-        return str(self.d) + ' -> h:' + str(self.h) + ':' + str(self.m) + ', @%.1fF°' % self.t
+        return f'Cycle [ Day: {self.d}, time: {self.h}:{self.m}, temperature: {self.t} F° ]'
 
 class DayIDs(db.Model):
     id = Column(Integer, primary_key=True)

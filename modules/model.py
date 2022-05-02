@@ -1,13 +1,18 @@
 import json
+import logging
 from collections import deque
 
 class HeatingModel():
-	def __init__(self, config_file_path) -> None:
+	def __init__(self, config_file_path, log_handler, log_level) -> None:
+		self.logger = logging.getLogger(type(self).__name__)
+		self.logger.addHandler(log_handler)
+		self.logger.setLevel(log_level)
 		vals = self.load_config(config_file_path)
 		self.set_values(vals)
 		self.runtime = 0.0
 
 	def load_config(self, config_file_path):
+		self.logger.debug(f'Loading from config file: {config_file_path}')
 		with open(config_file_path, 'r') as config_file:
 			config_obj = json.loads(config_file.read())
 			return config_obj
@@ -41,7 +46,7 @@ class HeatingModel():
 		else:
 			return (0.0, False)
 
-	def simulate(self, start_temperature, sched,outsideTemperature, uvIndex):
+	def simulate(self, start_temperature, sched, outsideTemperature, uvIndex):
 		# time of day in hours
 		time_hr = 0.0
 		# if the furnace is on

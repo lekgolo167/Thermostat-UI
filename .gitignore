@@ -8,3 +8,4 @@ config.json
 *.so
 */.ipynb_checkpoints/*
 pylintrc
+*.log

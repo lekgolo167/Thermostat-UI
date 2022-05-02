@@ -1,7 +1,9 @@
 
+from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, jsonify, request, redirect
 import time as cTime
 import json
+import logging
 
 from database import db, ma, db_cli, CyclesSchema, DayIDsSchema
 from modules.cyclesController import CyclesController
@@ -23,20 +25,35 @@ DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satur
 
 DEBUG_ENABLED = False
 TIME_ZONE = 0
+LOG_LEVEL = logging.INFO
 with open('config.json', 'r') as config_file:
     config_obj = json.loads(config_file.read())
     DEBUG_ENABLED = config_obj.get('debug-enabled', False)
-    TIME_ZONE = config_obj.get('time-zone-gmt', 0) * 3600 # convert to seconds
+    TIME_ZONE = config_obj.get('time-zone-from-gmt', 0) * 3600 # convert to seconds
+    if DEBUG_ENABLED:
+        LOG_LEVEL = logging.DEBUG
+    else:
+        LOG_LEVEL = logging.INFO
 
-cycles_controller = CyclesController('config.json')
-days_controller = ChachedDaysController('config.json', DEBUG_ENABLED)
-connection_manager = ConnectionManager('config.json')
+log_handler = RotatingFileHandler(filename='app.log', mode='a', maxBytes=5*1024*1024, backupCount=2)
+log_format = logging.Formatter('%(asctime)s %(levelname)s %(name)s-> %(message)s')
+log_handler.setFormatter(log_format)
+app_log = logging.getLogger('app')
+app_log.setLevel(LOG_LEVEL)
+app_log.addHandler(log_handler)
+
+cycles_controller = CyclesController('config.json', log_handler, LOG_LEVEL)
+days_controller = ChachedDaysController('config.json', log_handler, LOG_LEVEL)
+connection_manager = ConnectionManager('config.json', log_handler, LOG_LEVEL)
+
+def startup():
+    days_controller.check_dates()
+    days_controller.init(cycles_controller.get_cycles)
 
 @app.route('/', methods=['GET'])
 def index():
     
     days_controller.check_dates()
-    days_controller.init(cycles_controller.get_cycles)
     sel_day = days_controller.selected_day
     
     cycles = cycles_controller.get_cycles(sel_day)
@@ -49,7 +66,6 @@ def index():
 
 @app.route('/simParams')
 def simParams():
-    print('reloading simulation parameters')
     days_controller.update_sim_params()
     return '{}'
 
@@ -65,12 +81,13 @@ def plot():
 
 @app.route('/getForecast', methods=['GET'])
 def getForecast():
+    app_log.info('Fetching weather forecast')
     forecast = get_weather_forecast(days_controller.apiKey, days_controller.lat, days_controller.lon)
     return forecast
 
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
-
+    app_log.info(f'Fetching cycles for day: {day}')
     cycles = cycles_controller.get_cycles(day)
     return jsonify(cycles=cycles_schema.dump(cycles))
 
@@ -80,11 +97,12 @@ def setDay(day):
         days_controller.selected_day = day
         return '{}', 200
     else:
+        app_log.error(f'Invalid day set: {day}')
         return jsonify(message='Invalid day!'), 400
 
 @app.route('/getDayIDs', methods=['GET'])
 def getDayIDs():
-
+    app_log.info('Fetching day IDs')
     dayIDs = cycles_controller.get_day_ids()
 
     return jsonify(dayIDs_schema.dump(dayIDs))
@@ -94,13 +112,14 @@ def getEpoch():
     timezone = TIME_ZONE
     is_dst = cTime.localtime().tm_isdst
     if is_dst == 1:
-        timezone -= 3600 # make it minus one hour for daylight savings
-
-    return jsonify(epoch=int(cTime.time()-timezone))
+        timezone -= 3600 # make it minus one hour for daylight savings\
+    epoch = int(cTime.time()-timezone)
+    app_log.info(f'Fetching epoch: {epoch}')
+    return jsonify(epoch=epoch)
 
 @app.route('/getTemporary', methods=['GET'])
 def getTemporary():
-
+    app_log.info('Fetching temporary temperature')
     tmp = days_controller.temporary_temperature
     days_controller.temporary_temperature = 0.0
 
@@ -113,6 +132,7 @@ def setTemporaryTemp(tmp):
         connection_manager.updatedTemporary()
         return jsonify(message='Thermostat temperature has been set!'), 202
     else:
+        app_log.warning(f'Invalid temperature: {tmp}')
         return jsonify(message='Invalid temperature range!'), 400
 
 @app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
@@ -157,6 +177,7 @@ def copyDayTo():
 @app.route('/setDate', methods=['POST'])
 def setDate():
     date_picked = request.form['datePicker']
+    app_log.debug(f'Set date to: {date_picked}')
     days_controller.update_weather(date_picked)
     days_controller.update_inside_temperature()
     
@@ -176,4 +197,5 @@ def update_simulation(day=None):
     days_controller.update_schedule(cycles, days_controller.days_data[day])
 
 if __name__ == "__main__":
+    app.before_first_request(startup)
     app.run(debug=DEBUG_ENABLED, host='0.0.0.0')

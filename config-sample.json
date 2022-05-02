@@ -9,7 +9,7 @@
     "lon": 0.0,
     "use-cpp-sim": false,
     "debug-enabled": false,
-    "time-zone-gmt": 7,
+    "time-zone-from-gmt": 7,
     "btu": 25.0,
     "delta-time": 0.01,
     "thresh-upper": 1.0,

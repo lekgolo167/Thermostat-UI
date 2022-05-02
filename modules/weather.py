@@ -1,4 +1,5 @@
 import json
+import logging
 import requests
 import time
 import datetime
@@ -19,7 +20,8 @@ weather_icons_dict = {
     'hail': 11
 }
 
-def get_weather_forecast(apiKey, lat, lon):
+def get_weather_forecast(logger, apiKey, lat, lon):
+    logger.debug(f'Fetching weather forecast')
 
     URL = 'https://api.darksky.net/forecast/'+ apiKey + '/' + lat + ',' + lon + '?exclude=currently,minutely,alerts,flags'
 
@@ -35,6 +37,7 @@ def get_weather_forecast(apiKey, lat, lon):
         try:
             icon = weather_icons_dict[hourlyData['icon']]
         except KeyError:
+            logging.error(f'Hourly weather icon not found for hour: {hour}')
             icon = weather_icons_dict['none']
 
         temperature = int(hourlyData['temperature'])
@@ -53,6 +56,7 @@ def get_weather_forecast(apiKey, lat, lon):
         try:
             icon = weather_icons_dict[forecast['icon']]
         except KeyError:
+            logging.error(f'Daily weather icon not found for day: {day}')
             icon = weather_icons_dict['none']
         tHigh = int(forecast['temperatureHigh'])
         tLow =  int(forecast['temperatureLow'])
@@ -66,10 +70,11 @@ def get_weather_forecast(apiKey, lat, lon):
 
     return json_data
 
-def get_weather_data(today, apiKey, lat, lon):
+def get_weather_data(logger, today, apiKey, lat, lon):
+
+    logger.debug(f'Fetching weather data for: {today}')
 
     todayInSec = datetime.datetime.strptime(today, "%Y-%m-%d").timestamp()
-    print("SECONDS: " + str(todayInSec))
     URL = 'https://api.darksky.net/forecast/'+ apiKey + '/' + lat + ',' + lon + ',' + str(int(todayInSec)) + '?exclude=currently,minutely,daily,alerts,flags'
 
     r = requests.get(url=URL)
@@ -85,9 +90,16 @@ def get_weather_data(today, apiKey, lat, lon):
 
     return dailyTemperatures, dailyUVindex
 
-def weather_data_from_file():
-    print("Loading weather data from file")
-    with open('archive/2022-4-24.json', 'r') as infile:
+def weather_data_from_file(logger, date_str, _, __, ___):
+
+    date = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+    day = 1
+    if date.day >= 15:
+        day = 15
+    filename = f'archive/2022-{date.month}-{day}.json'
+    logger.debug(f'Loading weather data from file: {filename}')
+
+    with open(filename, 'r') as infile:
         text = infile.read()
         data = json.loads(text)
         hourlyData = data['hourly']['data']

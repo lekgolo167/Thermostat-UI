@@ -1,20 +1,7 @@
-// function httpGetAsync(theUrl, callback) {
-//     let xmlHttpReq = new XMLHttpRequest();
-//     xmlHttpReq.onreadystatechange = function() {
-//         if (xmlHttpReq.readyState == 4 && xmlHttpReq.status == 200)
-//             callback(JSON.parse(xmlHttpReq.responseText));
-//     }
-//     xmlHttpReq.open("GET", theUrl, true); // true for asynchronous 
-//     xmlHttpReq.send(null);
-// }
-
 window.onload = function() {
 
     httpGetAsync('/plot', function(result) {
         result = JSON.parse(result.responseText)
-        console.log(result.schedule);
-        console.log(result.outside);
-        console.log(result.inside);
 
         const data = {
             datasets: [{
@@ -45,7 +32,6 @@ window.onload = function() {
             ]
         };
         const totalDuration = 1500;
-        console.log(result.inside.length)
         const delayBetweenPoints = totalDuration / result.inside.length;
         const previousY = (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(100) : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y;
         const animation = {
@@ -55,7 +41,6 @@ window.onload = function() {
                 duration: delayBetweenPoints,
                 from: NaN, // the point is initially skipped
                 delay(ctx) {
-                    console.log(ctx.type)
                     if (ctx.type !== 'data' || ctx.xStarted) {
                         return 0;
                     }
