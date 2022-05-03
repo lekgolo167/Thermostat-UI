@@ -8,8 +8,7 @@ import logging
 from database import db, ma, db_cli, CyclesSchema, DayIDsSchema
 from modules.cyclesController import CyclesController
 from modules.connectionManager import ConnectionManager
-from modules.cachedController import ChachedDaysController
-from modules.weather import get_weather_forecast
+from modules.simulationDayController import SimulationDayController
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///schedule.db'
@@ -43,22 +42,23 @@ app_log.setLevel(LOG_LEVEL)
 app_log.addHandler(log_handler)
 
 cycles_controller = CyclesController('config.json', log_handler, LOG_LEVEL)
-days_controller = ChachedDaysController('config.json', log_handler, LOG_LEVEL)
+simulation_controller = SimulationDayController('config.json', log_handler, LOG_LEVEL)
 connection_manager = ConnectionManager('config.json', log_handler, LOG_LEVEL)
 
 def startup():
-    days_controller.check_dates()
-    days_controller.init(cycles_controller.get_cycles)
+    app_log.info('Server starting up.....')
+    simulation_controller.check_dates()
+    simulation_controller.init(cycles_controller.get_cycles)
 
 @app.route('/', methods=['GET'])
 def index():
     
-    days_controller.check_dates()
-    sel_day = days_controller.selected_day
+    simulation_controller.check_dates()
+    sel_day = simulation_controller.selected_day
     
     cycles = cycles_controller.get_cycles(sel_day)
 
-    day = days_controller.get_day()
+    day = simulation_controller.get_day()
     min_t, mid_t, max_t = cycles_controller.get_min_mid_max()
 
     return render_template("index.jinja", cycles=cycles, days=DAYS, selDay=sel_day, min_t=min_t, mid_t=mid_t, max_t=max_t,
@@ -66,7 +66,7 @@ def index():
 
 @app.route('/simParams')
 def simParams():
-    days_controller.update_sim_params()
+    simulation_controller.update_sim_params()
     return '{}'
 
 @app.route('/heartbeat', methods=['GET'])
@@ -76,14 +76,13 @@ def heartbeat():
 
 @app.route('/plot', methods=['GET'])
 def plot():
-    day = days_controller.get_day()
+    day = simulation_controller.get_day()
     return jsonify({'schedule': day.g_schedule, 'outside': day.g_outside_temperatures, 'inside': day.g_inside_temperatures})
 
 @app.route('/getForecast', methods=['GET'])
 def getForecast():
     app_log.info('Fetching weather forecast')
-    forecast = get_weather_forecast(days_controller.apiKey, days_controller.lat, days_controller.lon)
-    return forecast
+    return simulation_controller._get_weather_forecast()
 
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
@@ -94,7 +93,7 @@ def getCycles(day):
 @app.route('/setDay/<int:day>', methods=['GET'])
 def setDay(day):
     if day >= 0 and day <= 7:
-        days_controller.selected_day = day
+        simulation_controller.selected_day = day
         return '{}', 200
     else:
         app_log.error(f'Invalid day set: {day}')
@@ -120,15 +119,15 @@ def getEpoch():
 @app.route('/getTemporary', methods=['GET'])
 def getTemporary():
     app_log.info('Fetching temporary temperature')
-    tmp = days_controller.temporary_temperature
-    days_controller.temporary_temperature = 0.0
+    tmp = simulation_controller.temporary_temperature
+    simulation_controller.temporary_temperature = 0.0
 
     return jsonify(temporary=tmp)
 
 @app.route('/setTemporaryTemp/<int:tmp>', methods=['GET'])
 def setTemporaryTemp(tmp):
     if cycles_controller.validate_range(tmp):
-        days_controller.temporary_temperature = float(tmp)
+        simulation_controller.temporary_temperature = float(tmp)
         connection_manager.updatedTemporary()
         return jsonify(message='Thermostat temperature has been set!'), 202
     else:
@@ -137,7 +136,7 @@ def setTemporaryTemp(tmp):
 
 @app.route('/newCycle/<int:t>/<int:h>/<int:m>', methods=['POST', 'GET'])
 def newCycle(t, h, m):
-    sel_day = days_controller.selected_day
+    sel_day = simulation_controller.selected_day
     valid, msg, status_code = cycles_controller.new_cycle(sel_day, t, h, m)
     if valid:
         connection_manager.updatedSchedule()
@@ -169,7 +168,7 @@ def copyDayTo():
     for day in range(len(DAYS)):
         checked = request.form.get(DAYS[day])
         if checked:
-            cycles_controller.copy_day_to(days_controller.selected_day, day)
+            cycles_controller.copy_day_to(simulation_controller.selected_day, day)
             update_simulation(day)
 
     return '{}'
@@ -178,23 +177,23 @@ def copyDayTo():
 def setDate():
     date_picked = request.form['datePicker']
     app_log.debug(f'Set date to: {date_picked}')
-    days_controller.update_weather(date_picked)
-    days_controller.update_inside_temperature()
+    simulation_controller.update_weather(date_picked)
+    simulation_controller.update_inside_temperature()
     
     return redirect('/')
 
 @app.route('/startTemp', methods=['POST'])
 def setStartTemp():
     startTemp = float(request.form['startTempPicker'])
-    days_controller.set_start_temperature(startTemp)
+    simulation_controller.set_start_temperature(startTemp)
     
     return redirect('/')
 
 def update_simulation(day=None):
     if day is None:
-        day = days_controller.selected_day
+        day = simulation_controller.selected_day
     cycles = cycles_controller.get_cycles(day)
-    days_controller.update_schedule(cycles, days_controller.days_data[day])
+    simulation_controller.update_schedule(cycles, simulation_controller.days_data[day])
 
 if __name__ == "__main__":
     app.before_first_request(startup)

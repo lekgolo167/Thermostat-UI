@@ -1,17 +1,16 @@
 from datetime import datetime, timedelta, date
-from distutils.command.config import config
 import time as cTime
 import json
+import requests
 import logging
 
 from modules.model import HeatingModel
-from modules.weather import get_weather_data, weather_data_from_file
 try:
 	from modules.simulation_cpp import simulation
 except:
 	pass
 
-class ChachedDaysController():
+class SimulationDayController():
 	def __init__(self, config_file_path, log_handler, log_level):
 		self.logger = logging.getLogger(type(self).__name__)
 		self.logger.addHandler(log_handler)
@@ -20,11 +19,27 @@ class ChachedDaysController():
 		self.lat = None
 		self.lon = None
 		self.get_weather = None
+		self.get_forecast = None
 		self.heating_model = HeatingModel(config_file_path, log_handler, log_level)
 		self.days_data = [DayData(d) for d in range(8)]
 		self.selected_day = 1
 		self.temporary_temperature = 0.0
 		self.load_config(config_file_path)
+		self.weather_icons_dict = {
+			'none': -1,
+			'clear-day': 0,
+			'clear-night': 1,
+			'rain': 2,
+			'snow': 3,
+			'sleet': 4,
+			'wind': 5,
+			'fog': 6,
+			'cloudy': 7,
+			'partly-cloudy-day': 8,
+			'partly-cloudy-night': 9,
+			'thuderstorm': 10,
+			'hail': 11
+		}
 	
 	def init(self, get_cycles):
 		today = date.today().strftime('%Y-%m-%d')
@@ -47,9 +62,11 @@ class ChachedDaysController():
 			# else:
 			# 	self.simulate = simulate
 			if config_obj.get('debug-enabled', False):
-				self.get_weather = weather_data_from_file
+				self.get_weather = self._weather_data_from_file
+				self.get_forecast = self._get_weather_forecast_from_file
 			else:
-				self.get_weather = get_weather_data
+				self.get_weather = self._get_weather_data
+				self.get_forecast = self._get_weather_forecast
 
 	def update_sim_params(self):
 		self.logger.debug('Reloading simulation parameters')
@@ -98,7 +115,7 @@ class ChachedDaysController():
 
 		outside_t = []
 		uv =[]
-		outside_t, uv = self.get_weather(self.logger, _date, self.apiKey, self.lat, self.lon)
+		outside_t, uv = self.get_weather(_date)
 
 		day.outside_temperatures = outside_t
 		day.uv_indices = uv
@@ -156,6 +173,109 @@ class ChachedDaysController():
 		m = int((hr - h)*60)
 		timestamp = str(h).zfill(2) + ':' + str(m).zfill(2)
 		day.g_inside_temperatures.append({'x': timestamp, 'y': inside_t})
+
+	def _format_forecast_data(self, data):
+		parsed_dict = {}
+		hourly = []
+		hour = 0
+		for hourlyData in data['hourly']['data']:
+			icon = None
+			try:
+				icon = self.weather_icons_dict[hourlyData['icon']]
+			except KeyError:
+				logging.error(f'Hourly weather icon not found for hour: {hour}')
+				icon = self.weather_icons_dict['none']
+
+			temperature = int(hourlyData['temperature'])
+			hourly.append({'i':icon, 't':temperature})
+			hour += 1
+			if hour >= 25:
+				break
+
+		hr = datetime.today().hour
+		hourly = hourly[25-hr:] + hourly[:25-hr]
+
+		daily = []
+		day = datetime.today().weekday()+1
+		for forecast in data['daily']['data'][:4]:
+			icon = None
+			try:
+				icon = self.weather_icons_dict[forecast['icon']]
+			except KeyError:
+				logging.error(f'Daily weather icon not found for day: {day}')
+				icon = self.weather_icons_dict['none']
+			tHigh = int(forecast['temperatureHigh'])
+			tLow =  int(forecast['temperatureLow'])
+			if day == 7:
+				day = 0
+			daily.append({'d':day,'i':icon, 'H':tHigh, 'L':tLow})
+			day += 1
+		
+		parsed_dict = {'hourly': hourly, 'daily':daily}
+		json_data = json.dumps(parsed_dict)
+
+		return json_data
+
+	def _get_weather_forecast_from_file(self):
+		filename = f'archive/forecast.json'
+		self.logger.debug(f'Loading weather forecast from file: {filename}')
+
+		with open(filename, 'r') as infile:
+			text = infile.read()
+			data = json.loads(text)
+			
+			return self._format_forecast_data(data)
+
+	def _get_weather_forecast(self):
+		self.logger.debug(f'Fetching weather forecast')
+
+		URL = 'https://api.darksky.net/forecast/'+ self.apiKey + '/' + self.lat + ',' + self.lon + '?exclude=currently,minutely,alerts,flags'
+
+		r = requests.get(url=URL)
+
+		data = json.loads(r.text)
+
+		return self._format_forecast_data(data)
+
+	def _format_weather_data(self, hourlyData):
+
+		dailyTemperatures = []
+		dailyUVindex = []
+		for hourData in hourlyData:
+			dailyTemperatures.append(hourData['temperature'])
+			dailyUVindex.append(hourData['uvIndex'])
+
+		return dailyTemperatures, dailyUVindex
+
+	def _get_weather_data(self, date_str):
+
+		self.logger.debug(f'Fetching weather data for: {date_str}')
+
+		todayInSec = datetime.strptime(date_str, "%Y-%m-%d").timestamp()
+		URL = 'https://api.darksky.net/forecast/'+ self.apiKey + '/' + self.lat + ',' + self.lon + ',' + str(int(todayInSec)) + '?exclude=currently,minutely,daily,alerts,flags'
+
+		r = requests.get(url=URL)
+
+		data = json.loads(r.text)
+		hourlyData = data['hourly']['data']
+
+		return self._format_weather_data(hourlyData)
+
+	def _weather_data_from_file(self, date_str):
+
+		date = datetime.strptime(date_str, "%Y-%m-%d")
+		day = 1
+		if date.day >= 15:
+			day = 15
+		filename = f'archive/2022-{date.month}-{day}.json'
+		self.logger.debug(f'Loading weather data from file: {filename}')
+
+		with open(filename, 'r') as infile:
+			text = infile.read()
+			data = json.loads(text)
+			hourlyData = data['hourly']['data']
+
+			return self._format_weather_data(hourlyData)
 
 class DayData():
 	def __init__(self, d):
