@@ -44,6 +44,20 @@ function map(x, in_min, in_max, out_min, out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+function tester(id) {
+    let cycle_time = document.getElementById('cycle-time-' + id).innerHTML;
+    let cycle_temp = parseInt(document.getElementById('cycle-temp-' + id).innerHTML);
+    let hour = document.getElementById('hour');
+    let minute = document.getElementById('minute');
+    let ante = document.getElementById('ante');
+    let temperature = document.getElementById('set-temp');
+
+    hour.value = cycle_time.split(':')[0];
+    minute.value = cycle_time.split(' ')[0].split(':')[1];
+    ante.value = cycle_time.split(' ')[1].toUpperCase();
+    temperature.value = cycle_temp;
+}
+
 function simParams() {
     let form = document.getElementById('simParams');
     let button = document.getElementById('showHide');

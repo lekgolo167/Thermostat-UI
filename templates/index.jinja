@@ -47,26 +47,26 @@
             {% if cycles|length< 1 %} 
             <h4>There are no cycles. Create one below!</h4>
             {% else %} {% for i in range(cycles|length) %}
-                <div class="neu">
+                <div class="neu" onclick="tester({{i}})">
                     <div class="row" style="align-items: center; text-align: center">
                         <div class="column">
                             <div >
                                 <i class="far fa-clock"></i>
                                 {% if cycles[i].h > 12 %}
-                                <label>{{ cycles[i].h - 12 }}:{{ '%02d' | format(cycles[i].m) }} pm</label>
+                                <label id="cycle-time-{{i}}">{{ cycles[i].h - 12 }}:{{ '%02d' | format(cycles[i].m) }} pm</label>
                                 {% elif cycles[i].h == 12 %}
-                                <label>{{ cycles[i].h }}:{{ '%02d' | format(cycles[i].m) }} pm</label>
+                                <label id="cycle-time-{{i}}">{{ cycles[i].h }}:{{ '%02d' | format(cycles[i].m) }} pm</label>
                                 {% elif cycles[i].h == 0 %}
-                                <label>{{ cycles[i].h + 12 }}:{{ '%02d' | format(cycles[i].m) }} am</label>
+                                <label id="cycle-time-{{i}}">{{ cycles[i].h + 12 }}:{{ '%02d' | format(cycles[i].m) }} am</label>
                                 {% else %}
-                                <label>{{ cycles[i].h }}:{{ '%02d' | format(cycles[i].m) }} am</label>
+                                <label id="cycle-time-{{i}}">{{ cycles[i].h }}:{{ '%02d' | format(cycles[i].m) }} am</label>
                                 {% endif %}
                             </div>
                         </div>
                         <div class="column">
                             <div >
                                 <i class="fas fa-thermometer-half"></i>
-                                <label>{{ cycles[i].t|int }} F°</label>
+                                <label id="cycle-temp-{{i}}">{{ cycles[i].t|int }} F°</label>
                             </div>
                         </div>
                         <div class="column">
