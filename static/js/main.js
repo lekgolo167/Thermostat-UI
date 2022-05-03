@@ -44,6 +44,18 @@ function map(x, in_min, in_max, out_min, out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+function simParams() {
+    let form = document.getElementById('simParams');
+    let button = document.getElementById('showHide');
+    if (form.style.display === "none") {
+        form.style.display = "block";
+        button.innerHTML = "Hide Advanced";
+    } else {
+        form.style.display = "none";
+        button.innerHTML = "Show Advanced";
+    }
+}
+
 function setTemporaryTemp() {
     let degrees = document.getElementById('set-temp').value;
     httpGetAsync('/setTemporaryTemp/' + degrees, function(result) {

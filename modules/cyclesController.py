@@ -1,6 +1,8 @@
 import json
 import logging
 from datetime import time
+from logging import Handler
+
 from database import db, Cycle, DayIDs
 
 class CyclesController():
@@ -17,7 +19,7 @@ class CyclesController():
 	_MSG_UNEDITABLE = 'The time of the first cycle is not editable! Only the tempereature can be alterted.'
 	_MSG_ID_NOT_FOUND = 'A cycle with ID: {} was not found!'
 
-	def __init__(self, config_file_path, log_handler, log_level) -> None:
+	def __init__(self, config_file_path: str, log_handler: Handler, log_level: int | str) -> None:
 		self.logger = logging.getLogger(type(self).__name__)
 		self.logger.addHandler(log_handler)
 		self.logger.setLevel(log_level)
@@ -26,7 +28,7 @@ class CyclesController():
 		self.mid_t = None
 		self.load_config(config_file_path)
 
-	def load_config(self, config_file_path) -> None:
+	def load_config(self, config_file_path: str) -> None:
 		self.logger.debug(f'Loading configuration from file: {config_file_path}')
 		with open(config_file_path, 'r') as config_file:
 			config_obj = json.loads(config_file.read())
@@ -35,32 +37,32 @@ class CyclesController():
 			self.mid_t = self.min_t + ((self.max_t - self.min_t)//2)
 		self.logger.info(f'Temperature bounds set to min:{self.min_t}, max:{self.max_t}')
 
-	def get_min_mid_max(self):
+	def get_min_mid_max(self) -> tuple[int, int, int]:
 		return self.min_t, self.mid_t, self.max_t
 	
-	def get_day_ids(self):
+	def get_day_ids(self) -> list:
 		return DayIDs.query.one()
 
-	def get_cycles(self, day):
+	def get_cycles(self, day: int) -> list['Cycle']:
 		cycles = Cycle.query.filter_by(d=day).all()
 		cycles.sort(key=lambda x: time(hour=x.h,minute=x.m))
 		return cycles
 
-	def validate_range(self, temperature):
+	def validate_range(self, temperature: float) -> bool:
 		if temperature >= self.min_t and temperature <= self.max_t:
 			return True
 		
 		self.logger.warning(f'Rejecting cycle with temperature: {temperature}')
 		return  False
 
-	def _validate_time(self, h, m):
+	def _validate_time(self, h: int, m: int) -> bool:
 		if h >= 0 and h <= 23 and m >= 0 and m <= 59:
 			return True
 
 		self.logger.warning(f'Rejecting cycle with time: {h}:{m}')
 		return False
 
-	def _update_day_ids(self, day):
+	def _update_day_ids(self, day: int) -> None:
 		self.logger.info(f'Updating day ID for: {day}')
 		dayIDs = DayIDs.query.one()
 		if day == 0:
@@ -80,7 +82,7 @@ class CyclesController():
 
 		db.session.commit()
 
-	def update_cycles(self, id, t, h, m):
+	def update_cycles(self, id: int, t: float, h: int, m: int) -> tuple[bool, str, int]:
 		if not self.validate_range(t):
 			return False, CyclesController._MSG_INVALID_RANGE, 400
 		if not self._validate_time(h, m):
@@ -108,7 +110,7 @@ class CyclesController():
 			self.logger.error(CyclesController._MSG_FAILED_UPDATE)
 			return False, CyclesController._MSG_FAILED_UPDATE, 500
 
-	def delete_cycle(self, id):
+	def delete_cycle(self, id: int) -> tuple[bool, str, int]:
 		try:
 			cycle = Cycle.query.get(id)
 			if cycle is None:
@@ -129,7 +131,7 @@ class CyclesController():
 			self.logger.error(CyclesController._MSG_FAILED_DELETE)
 			return False, CyclesController._MSG_FAILED_DELETE, 500
 
-	def new_cycle(self, day, t, h, m):
+	def new_cycle(self, day: int, t: float, h: int, m: int) -> tuple[bool, str, int]:
 		if not self.validate_range(t):
 			return False, CyclesController._MSG_INVALID_RANGE, 400
 		if not self._validate_time(h, m):
@@ -148,7 +150,7 @@ class CyclesController():
 			self.logger.error(CyclesController._MSG_FAILED_CREATE)
 			return False, CyclesController._MSG_FAILED_CREATE, 500
 
-	def copy_day_to(self, from_day, this_day):
+	def copy_day_to(self, from_day: int, this_day: int) -> None:
 		self.logger.debug(f'Copying day: {from_day} to day: {this_day}')
 		cycles = Cycle.query.filter_by(d=this_day).all()
 		# remove all cycles for that day

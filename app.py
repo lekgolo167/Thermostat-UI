@@ -55,19 +55,14 @@ def index():
     
     simulation_controller.check_dates()
     sel_day = simulation_controller.selected_day
-    
+    sim_params = simulation_controller.heating_model.get_values()
     cycles = cycles_controller.get_cycles(sel_day)
 
     day = simulation_controller.get_day()
     min_t, mid_t, max_t = cycles_controller.get_min_mid_max()
 
-    return render_template("index.jinja", cycles=cycles, days=DAYS, selDay=sel_day, min_t=min_t, mid_t=mid_t, max_t=max_t,
-                            runtime=day.runtime, today=day.days_date, startTemp=day.start_temperature)
-
-@app.route('/simParams')
-def simParams():
-    simulation_controller.update_sim_params()
-    return '{}'
+    return render_template('index.jinja', cycles=cycles, days=DAYS, selDay=sel_day, min_t=min_t, mid_t=mid_t, max_t=max_t,
+                            runtime=day.runtime, today=day.days_date, startTemp=day.start_temperature, sim_params=sim_params)
 
 @app.route('/heartbeat', methods=['GET'])
 def heartbeat():
@@ -187,6 +182,12 @@ def setStartTemp():
     startTemp = float(request.form['startTempPicker'])
     simulation_controller.set_start_temperature(startTemp)
     
+    return redirect('/')
+
+@app.route('/simParams', methods=['POST'])
+def simParams():
+    simulation_controller.heating_model.set_values(request.form)
+    update_simulation()
     return redirect('/')
 
 def update_simulation(day=None):

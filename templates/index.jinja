@@ -89,17 +89,43 @@
         <canvas id="scheduleGraph" style="height: 370px; width: 100%;"></canvas>
     </div>
         <h2 style="text-align: center">Estimated Runtime: {{"%.2f"|format(runtime)}} Hrs.</h2>
-        <label for="simDay">Simulation date:</label>
-
         <form name="datePicker" action="/setDate" method="POST">
+            <label for="datePicker">Simulation Date:</label>
             <input type="date" id="datePicker" name="datePicker" value="{{today}}" min="" max="">
             <button type="submit">Date</button>
         </form>
         <form name="startTempPicker" action="/startTemp" method="POST">
-            <input type="number" id="startTempPicker" name="startTempPicker" value="{{startTemp}}" min="" max="">
+            <label for="startTempPicker">Initial Temperature:</label>
+            <input type="number" id="startTempPicker" name="startTempPicker" value="{{startTemp}}" step="0.1">
             <button type="submit">Set</button>
         </form>
-
+        <button id="showHide" onclick="simParams()">Show Advanced</button>
+        <form id="simParams" action="/simParams" method="POST" style="display: none;">
+            <label for="btu">BTU:</label>
+            <input type="number" name="btu" value="{{sim_params['btu']}}">
+            <label for="delta-time">Time Delta:</label>
+            <input type="number" name="delta-time" value="{{sim_params['delta-time']}}" step="0.01" min="0">
+            <label for="thresh-upper">Upper:</label>
+            <input type="number" name="thresh-upper" value="{{sim_params['thresh-upper']}}" step="0.5" min="0">
+            <label for="thresh-lower">Lower:</label>
+            <input type="number" name="thresh-lower" value="{{sim_params['thresh-lower']}}" step="0.5" min="0">
+            <label for="sample-avg">Sample Average:</label>
+            <input type="number" name="sample-avg" value="{{sim_params['sample-avg']}}" min="1">
+            <label for="k1">Wall:</label>
+            <input type="number" name="k1" value="{{sim_params['k1']}}" step="0.01" min="0">
+            <label for="k2">Ceiling:</label>
+            <input type="number" name="k2" value="{{sim_params['k2']}}" step="0.01" min="0">
+            <label for="k3">Roof:</label>
+            <input type="number" name="k3" value="{{sim_params['k3']}}" step="0.01" min="0">
+            <label for="f1">UV Wall:</label>
+            <input type="number" name="f1" value="{{sim_params['f1']}}" step="0.01" min="0">
+            <label for="f2">UV Roof:</label>
+            <input type="number" name="f2" value="{{sim_params['f2']}}" step="0.01" min="0">
+            <label for="rolling-avg-size">Heat Capacity:</label>
+            <input type="number" name="rolling-avg-size" value="{{sim_params['rolling-avg-size']}}" min="1">
+            <button type="submit">Update</button>
+            <button type="reset">Reset</button>
+        </form>
         
         <div class="neu">
         <label>Copy Today To ... </label>

@@ -1,9 +1,11 @@
-from datetime import datetime, timedelta, date
 import time as cTime
 import json
 import requests
 import logging
+from logging import Handler
+from datetime import datetime, timedelta, date
 
+from database import Cycle
 from modules.model import HeatingModel
 try:
 	from modules.simulation_cpp import simulation
@@ -11,7 +13,7 @@ except:
 	pass
 
 class SimulationDayController():
-	def __init__(self, config_file_path, log_handler, log_level):
+	def __init__(self, config_file_path: str, log_handler: Handler, log_level: int | str) -> None:
 		self.logger = logging.getLogger(type(self).__name__)
 		self.logger.addHandler(log_handler)
 		self.logger.setLevel(log_level)
@@ -41,7 +43,7 @@ class SimulationDayController():
 			'hail': 11
 		}
 	
-	def init(self, get_cycles):
+	def init(self, get_cycles: callable) -> None:
 		today = date.today().strftime('%Y-%m-%d')
 		for x in range(0,8):
 			day = self.days_data[x]
@@ -50,7 +52,7 @@ class SimulationDayController():
 			cycles = get_cycles(x)
 			self.update_schedule(cycles, day)
 
-	def load_config(self, config_file_path):
+	def load_config(self, config_file_path: str) -> None:
 		self.logger.debug(f'Loading configuration from file: {config_file_path}')
 		with open(config_file_path, 'r') as config_file:
 			config_obj = json.loads(config_file.read())
@@ -68,21 +70,16 @@ class SimulationDayController():
 				self.get_weather = self._get_weather_data
 				self.get_forecast = self._get_weather_forecast
 
-	def update_sim_params(self):
-		self.logger.debug('Reloading simulation parameters')
-		vals = self.heating_model.load_config('config.json')
-		self.heating_model.set_values(vals)
-
-	def get_day(self):
+	def get_day(self) -> 'DayData':
 		return self.days_data[self.selected_day]
 
-	def set_start_temperature(self, temperature):
+	def set_start_temperature(self, temperature: float) -> None:
 		day = self.days_data[self.selected_day]
-		self.logger.debug(f'Setting simulation initial temperature to: {temperature} for day: {day}')
 		day.start_temperature = temperature
 		self.update_inside_temperature(day)
+		self.logger.debug(f'Setting simulation initial temperature to: {temperature} for day: {day}')
 	
-	def check_dates(self):
+	def check_dates(self) -> None:
 		today = date.today().strftime('%Y-%m-%d')
 		for day in range(0,7):
 			if self.days_data[day].last_updated < int(cTime.time()) - 43200: # 12 hrs
@@ -90,7 +87,7 @@ class SimulationDayController():
 				self.update_weather(today, self.days_data[day])
 				self.update_inside_temperature(self.days_data[day])
 
-	def update_schedule(self, cycles, day=None):
+	def update_schedule(self, cycles: list['Cycle'], day: 'DayData'=None) -> None:
 		if day is None:
 			day = self.days_data[self.selected_day]
 
@@ -109,7 +106,7 @@ class SimulationDayController():
 
 		self.update_inside_temperature(day)
 
-	def update_weather(self, _date, day=None):
+	def update_weather(self, _date: str, day: 'DayData'=None) -> None:
 		if day is None:
 			day = self.days_data[self.selected_day]
 
@@ -129,7 +126,7 @@ class SimulationDayController():
 			day.g_outside_temperatures.append({'x': timestamp, 'y': outside_t[hr]})
 
 
-	def update_inside_temperature(self, day=None):
+	def update_inside_temperature(self, day: 'DayData'=None) -> None:
 		if day is None:
 			day = self.days_data[self.selected_day]
 
@@ -174,7 +171,7 @@ class SimulationDayController():
 		timestamp = str(h).zfill(2) + ':' + str(m).zfill(2)
 		day.g_inside_temperatures.append({'x': timestamp, 'y': inside_t})
 
-	def _format_forecast_data(self, data):
+	def _format_forecast_data(self, data: dict[str, any]) -> str:
 		parsed_dict = {}
 		hourly = []
 		hour = 0
@@ -216,7 +213,7 @@ class SimulationDayController():
 
 		return json_data
 
-	def _get_weather_forecast_from_file(self):
+	def _get_weather_forecast_from_file(self) -> str:
 		filename = f'archive/forecast.json'
 		self.logger.debug(f'Loading weather forecast from file: {filename}')
 
@@ -226,7 +223,7 @@ class SimulationDayController():
 			
 			return self._format_forecast_data(data)
 
-	def _get_weather_forecast(self):
+	def _get_weather_forecast(self) -> str:
 		self.logger.debug(f'Fetching weather forecast')
 
 		URL = 'https://api.darksky.net/forecast/'+ self.apiKey + '/' + self.lat + ',' + self.lon + '?exclude=currently,minutely,alerts,flags'
@@ -237,7 +234,7 @@ class SimulationDayController():
 
 		return self._format_forecast_data(data)
 
-	def _format_weather_data(self, hourlyData):
+	def _format_weather_data(self, hourlyData: list[dict[str, any]]) -> tuple[list[float], list[float]]:
 
 		dailyTemperatures = []
 		dailyUVindex = []
@@ -247,7 +244,7 @@ class SimulationDayController():
 
 		return dailyTemperatures, dailyUVindex
 
-	def _get_weather_data(self, date_str):
+	def _get_weather_data(self, date_str: str) -> tuple[list[float], list[float]]:
 
 		self.logger.debug(f'Fetching weather data for: {date_str}')
 
@@ -261,7 +258,7 @@ class SimulationDayController():
 
 		return self._format_weather_data(hourlyData)
 
-	def _weather_data_from_file(self, date_str):
+	def _weather_data_from_file(self, date_str: str) -> tuple[list[float], list[float]]:
 
 		date = datetime.strptime(date_str, "%Y-%m-%d")
 		day = 1
@@ -274,11 +271,10 @@ class SimulationDayController():
 			text = infile.read()
 			data = json.loads(text)
 			hourlyData = data['hourly']['data']
-
 			return self._format_weather_data(hourlyData)
 
 class DayData():
-	def __init__(self, d):
+	def __init__(self, d: int):
 		day = date.today()+timedelta(d)
 		self.days_date = day.strftime('%Y-%m-%d')
 		self.last_updated = 0
