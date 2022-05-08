@@ -6,7 +6,7 @@ from logging import Handler
 from datetime import datetime, timedelta, date
 
 from database import Cycle
-from modules.model import HeatingModel
+from modules.heatingModel import HeatingModel
 try:
 	from modules.simulation_cpp import simulation
 except:

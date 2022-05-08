@@ -1,19 +1,16 @@
 #include <iostream>
 #include <boost/python.hpp>
+#include <deque>
 
 using namespace boost::python;
 
-const int N = 250;
-const double delta_time = 0.01;
-const double BTU = 25.0;
-const double thresh_L = 2.0;
-const double thresh_H = 2.0;
-bool heat_on = false;
-bool last_heating = false;
+double delta_time = 0.01;
+double BTU = 25.0;
+double thresh_L = 2.0;
+double thresh_H = 2.0;
 double runtime = 0.0;
-double time_hr = 0.0;
 
-double find_target_t(list schedule) {
+double get_target_temp(double time_hr, list schedule) {
 	double target_t = 0.0;
 
 	int n = len(schedule);
@@ -30,94 +27,95 @@ double find_target_t(list schedule) {
 	return target_t;
 }
 
-double H(double temp, list schedule) {
-	double target_t = find_target_t(schedule);
-
-	if (temp <= target_t - thresh_L) {
+double H(double inside_t, double target, bool* furnace_on) {
+	if (inside_t < (target - thresh_L) || (*furnace_on && inside_t < (target + thresh_H))) {
 		runtime += delta_time;
-		heat_on = true;
+		*furnace_on = true;
 		return BTU;
 	}
-	else if (temp <= target_t + thresh_H && heat_on) {
-		runtime += delta_time;
-		return BTU;
-	}
-	else {
-		heat_on = false;
-		return 0.0;
-	}
+	*furnace_on = false;
+	return 0.0;
 }
 
-tuple simulate(double start_temperature, list sched, list weather_t, list uv_index) {
+tuple simulate(double start_temperature, list sched, list weather_t, list uv_index, dict vals) {
 	// time of day in hours
-	time_hr = 0.0;
+	double time_hr = 0.0;
 	// if the furnace is on
-	heat_on = false;
-	last_heating = false;
+	bool furnace_on = false;
+	
+	BTU = extract<double>(vals.get("btu"));
+	delta_time = extract<double>(vals.get("delta-time"));
+	thresh_H = extract<double>(vals.get("thresh-upper"));
+	thresh_L = extract<double>(vals.get("thresh-lower"));
+	int sample_avg_size = extract<int>(vals.get("sample-avg"));
+	int rolling_avg_size = extract<int>(vals.get("rolling-avg-size"));
+
 	// insulation
-	double k1 = 0.08; // wall
-	double k2 = 0.18; // cieling
-	double k3 = 0.03; // roof
+	double k1 = extract<double>(vals.get("k1")); // wall
+	double k2 = extract<double>(vals.get("k2")); // cieling
+	double k3 = extract<double>(vals.get("k3")); // roof
+	double f1 = extract<double>(vals.get("f1")); // uv walls
+	double f2 = extract<double>(vals.get("f2")); // uv roof
+	runtime = 0.0;
+
 	// starting temperatures
 	double inside_t = start_temperature;
 	double attic_t = start_temperature - 4.0;
+
 	// change in temperature
 	double delta_t1, delta_t2;
+
 	// used for heat capacity calculations
-	double heat_retension[N];
-	int index = 0;
-	double accum = (inside_t - 2.0)*N;
-	std::fill_n(heat_retension, N, attic_t+2.0);
+	std::deque<double> heat_retension(rolling_avg_size);
+	std::deque<double> sample_arr(sample_avg_size);
+	double accum = (inside_t - 2.0)*rolling_avg_size;
+	double sample_avg = (inside_t)*sample_avg_size;
+	std::fill_n(heat_retension.begin(), rolling_avg_size, inside_t-2.0);
+	std::fill_n(sample_arr.begin(), sample_avg_size, inside_t);
+
 	// data to return
-	bool save_every_other = true;
 	runtime = 0.0;
 	list data;
-
-	while(time_hr < 23.99) {
+	while(time_hr < 24.0) {
 		// extract variables
 		int hour_index = int(time_hr);
 		double outside_t = extract<double>(weather_t[hour_index]);
 		double uv = extract<double>(uv_index[hour_index]);
 
-		// not every data point needs to be graphed
-		if (save_every_other) {
-			data.append(make_tuple(inside_t, time_hr));
-		}
-		save_every_other = !save_every_other;
+		data.append(make_tuple(inside_t, time_hr));
+
+		// heat_retension update rolling average
+		double old = heat_retension.front();
+		heat_retension.push_back(inside_t);
+		accum = accum - old + inside_t;
+		heat_retension.pop_front();
+
+		old = sample_arr.front();
+		sample_arr.push_back(inside_t);
+		sample_avg = sample_avg - old + inside_t;
+		sample_arr.pop_front();
+		
+
+		double c = (accum/rolling_avg_size) - inside_t;
+		double inside_avg = sample_avg / sample_avg_size;
+		double target = get_target_temp(time_hr, sched);
+		double h = H(inside_avg, target, &furnace_on);
+		//std::cout << inside_avg << std::endl;
 
 		// calculate change in temperature
-		delta_t1 = k1 * (outside_t - inside_t) + k2 * (attic_t-inside_t) + H(inside_t, sched) + uv * 0.2;
-		delta_t2 = k2 * (inside_t - attic_t) + k3 * (outside_t - attic_t) + uv * 0.9;
+		delta_t1 = k1 * (outside_t - inside_t) + k2 * (attic_t-inside_t) + h + uv * f1 + c;
+		delta_t2 = k2 * (inside_t - attic_t) + k3 * (outside_t - attic_t) + uv * f2;
 
 		// scale the change in temperature
 		delta_t1 *= delta_time;
 		delta_t2 *= delta_time;
 
-		// heat_retension update rolling average
-		if(index >= N) {
-			index = 0;
-		}
-		double old = heat_retension[index];
-		heat_retension[index++] = inside_t;
-		accum = accum - old + inside_t;
-
-		if(!heat_on) {
-			double pen = (accum / N - inside_t) * delta_time;
-			delta_t1 += pen*2.7;
-		}
-
-		// add the change in temperature plus heat from neighbors wall
-		inside_t += delta_t1 + 0.0005*(72.0-inside_t);
-		attic_t += delta_t2  + 0.0005*(69.0-attic_t);
-
-		// if the heater just turned off, add a little time for it to shutdown
-		if (!heat_on && last_heating) {
-			runtime += 0.01;
-		}
+		// add the change in temperature
+		inside_t += delta_t1;
+		attic_t += delta_t2;
 
 		// increment time
 		time_hr += delta_time;
-		last_heating = heat_on;
 	}
 
 	return make_tuple(data, runtime);

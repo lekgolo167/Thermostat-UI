@@ -89,17 +89,18 @@
         <canvas id="scheduleGraph" style="height: 370px; width: 100%;"></canvas>
     </div>
         <h2 style="text-align: center">Estimated Runtime: {{"%.2f"|format(runtime)}} Hrs.</h2>
+        <div class="neu">
         <form name="datePicker" action="/setDate" method="POST">
             <label for="datePicker">Simulation Date:</label>
             <input type="date" id="datePicker" name="datePicker" value="{{today}}" min="" max="">
-            <button type="submit">Date</button>
+            <button class="neu-btn" type="submit">Date</button>
         </form>
         <form name="startTempPicker" action="/startTemp" method="POST">
             <label for="startTempPicker">Initial Temperature:</label>
             <input type="number" id="startTempPicker" name="startTempPicker" value="{{startTemp}}" step="0.1">
-            <button type="submit">Set</button>
+            <button class="neu-btn" type="submit">Set</button>
         </form>
-        <button id="showHide" onclick="simParams()">Show Advanced</button>
+        <button id="showHide" class="neu-btn" onclick="simParams()">Show Advanced</button>
         <form id="simParams" action="/simParams" method="POST" style="display: none;">
             <label for="btu">BTU:</label>
             <input type="number" name="btu" value="{{sim_params['btu']}}">
@@ -123,10 +124,10 @@
             <input type="number" name="f2" value="{{sim_params['f2']}}" step="0.01" min="0">
             <label for="rolling-avg-size">Heat Capacity:</label>
             <input type="number" name="rolling-avg-size" value="{{sim_params['rolling-avg-size']}}" min="1">
-            <button type="submit">Update</button>
-            <button type="reset">Reset</button>
+            <button class="neu-btn" type="submit">Update</button>
+            <button class="neu-btn" type="reset">Reset</button>
         </form>
-        
+        </div>
         <div class="neu">
         <label>Copy Today To ... </label>
         <form action="/copyDayTo" method="POST">
@@ -141,9 +142,9 @@
             {% endif %} 
         {% endfor %}
         </div>
-        <button class="neu-btn" style="color: gray" type="submit">Copy</button>
+        <button class="neu-btn" type="submit">Copy</button>
         </fieldset>  
-        </form>
+    </form>
         </div>
         <script>
 
