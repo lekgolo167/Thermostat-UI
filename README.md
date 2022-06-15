@@ -34,5 +34,218 @@ The Python implementation can be quite slow, around 100 ms per simulation. I've 
 ---
 ## API
 
+### Day ID Endpoint
+ * ```/getDayIDs```
+ * Response
+ <pre>{
+  "fri": 30, 
+  "mon": 195, 
+  "sat": 40, 
+  "sun": 192, 
+  "thu": 54, 
+  "tue": 67, 
+  "wed": 48
+}</pre>
+
+### Day's Schedule Endpoint
+ * ```/getCycles/<day>```
+ * Response
+ <pre>{
+  "cycles": [
+    {
+      "h": 0, 
+      "id": 219, 
+      "m": 0, 
+      "t": 60.0
+    }, 
+    {
+      "h": 13, 
+      "id": 218, 
+      "m": 15, 
+      "t": 65.0
+    }, 
+    {
+      "h": 23, 
+      "id": 220, 
+      "m": 0, 
+      "t": 65.0
+    }
+  ]
+}</pre>
+
+### Epoch Timestamp Endpoint
+ * ```/getEpoch```
+ * Response
+ <pre>{
+  "epoch": 1655233730
+}</pre>
+
+### Forecast Endpoint
+ * ```/getForecast```
+ * Response
+ <pre>{
+    "hourly": [
+        {
+            "i": 1,
+            "t": 45
+        },
+        {
+            "i": 1,
+            "t": 43
+        },
+        {
+            "i": 1,
+            "t": 41
+        },
+        {
+            "i": 1,
+            "t": 37
+        },
+        {
+            "i": 1,
+            "t": 33
+        },
+        {
+            "i": 0,
+            "t": 30
+        },
+        {
+            "i": 0,
+            "t": 31
+        },
+        {
+            "i": 0,
+            "t": 36
+        },
+        {
+            "i": 0,
+            "t": 40
+        },
+        {
+            "i": 0,
+            "t": 43
+        },
+        {
+            "i": 0,
+            "t": 47
+        },
+        {
+            "i": 0,
+            "t": 51
+        },
+        {
+            "i": 0,
+            "t": 56
+        },
+        {
+            "i": 0,
+            "t": 59
+        },
+        {
+            "i": 0,
+            "t": 63
+        },
+        {
+            "i": 0,
+            "t": 66
+        },
+        {
+            "i": 0,
+            "t": 68
+        },
+        {
+            "i": 0,
+            "t": 69
+        },
+        {
+            "i": 0,
+            "t": 68
+        },
+        {
+            "i": 8,
+            "t": 59
+        },
+        {
+            "i": 8,
+            "t": 52
+        },
+        {
+            "i": 9,
+            "t": 47
+        },
+        {
+            "i": 9,
+            "t": 49
+        },
+        {
+            "i": 9,
+            "t": 50
+        },
+        {
+            "i": 9,
+            "t": 48
+        }
+    ],
+    "daily": [
+        {
+            "d": 2,
+            "i": 8,
+            "H": 62,
+            "L": 30
+        },
+        {
+            "d": 3,
+            "i": 0,
+            "H": 70,
+            "L": 40
+        },
+        {
+            "d": 4,
+            "i": 0,
+            "H": 92,
+            "L": 60
+        },
+        {
+            "d": 5,
+            "i": 8,
+            "H": 93,
+            "L": 59
+        }
+    ]
+}</pre>
+
+### Temporary Temperature Endpoint
+ * ```/getTemporary```
+ * Response
+  <pre>{
+  "temporary": 0.0
+}</pre>
+
 ---
 ## Configuration
+Refer to the ```config-sample.json``` for the list of properties that can be set. This file should be renamed to ```config.json``` as that is the name the server looks for on startup.
+* Property descriptions:
+  | Name | Description | 
+  | --------- | --------- |
+  | ```thermostat-hostname``` | Hostname that the server will look for on the network to obtain its IP address |
+  | ```thermostat-hb-port``` | Thermostat port to receive heartbeat messages on |
+  | ```thermostat-listen-port``` | Thermostat listening port for udp messages  |
+  | ```max-settable-temperature``` | The maximum settable temperature by the user |
+  | ```min-settable-temperature``` | The minimum settable temperature by the user |
+  | ```api-key``` | The api key for the weather api service you are using |
+  | ```lat``` | Your lattitude in degrees |
+  | ```lon``` | Your longitude in degrees |
+  | ```use-cpp-sim``` | If the C++ simulation model should be used instead of the Python implementation |
+  | ```debug-enabled``` | If the server should start up in debug mode. API weather queries will be loaded from archive files instead and debug statements will be logged |
+  | ```time-zone-from-gmt``` | hourst from GMT time zone |
+  | ```btu``` | BTU rating of furnace in thousands |
+  | ```delta-time``` | Simulation time interval |
+  | ```thresh-upper``` | Upper threshold for when the furnace should shut off |
+  | ```thresh-lower``` | Lower threshold for when the furnace should turn on|
+  | ```sample-avg``` | Number of samples of the air temperature should be used to calculate the average temperature in the air. |
+  | ```k1``` | The wall insulation factor |
+  | ```k2``` | The ceiling insulation factor |
+  | ```k3``` | The roof insulation factor |
+  | ```f1``` | Factor for how much sunlight heat is transfered through to the walls |
+  | ```f2``` | Factor for how much sunlight heat is transfered through to the roof |
+  | ```rolling-avg-size``` | The heat capacity of the establisment. Larger numbers mean that the temperature inside will be more resistant to change by the furnace or the outside temperature. This is a way to simulate furnature, walls etc retaining heat (whether that is cooler or warmer than the current temperature) |
