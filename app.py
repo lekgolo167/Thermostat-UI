@@ -1,4 +1,5 @@
 
+import atexit
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, jsonify, request, redirect
 import time as cTime
@@ -196,6 +197,14 @@ def update_simulation(day=None):
     cycles = cycles_controller.get_cycles(day)
     simulation_controller.update_schedule(cycles, simulation_controller.days_data[day])
 
+def server_shutdown():
+    app_log.info('Server is shutting down...')
+
 if __name__ == "__main__":
+    atexit.register(server_shutdown)
     app.before_first_request(startup)
-    app.run(debug=DEBUG_ENABLED, host='0.0.0.0')
+    try:
+        app.run(debug=DEBUG_ENABLED, host='0.0.0.0')
+    except Exception as e:
+        app_log.error(e)
+        app_log.exception('An exception has occurred. Server shutting down...')

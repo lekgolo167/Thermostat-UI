@@ -1,25 +1,26 @@
 # Enxor-Smart-Thermostat
+## UI
 ### By: Matthew Crump
 ---
 ## Contents
 1. [Overview](#overview)
-2. [Heating-Model](#heating-model)
-3. [Cpp-Model](#cpp-model)
+2. [Heating Model](#heating-model)
+3. [Cpp Model](#cpp-model)
 4. [API](#api)
 5. [Configuration](#configuration)
 
 ---
 ## Overview
-At my duplex, I used to have a simple thermostat that used a mercery switch. I wanted to improve this by making a smart thermostat that could have a different schedule for each day of the week. As a college student at the time of creation, my schedule varied day by day. Another feature I wanted was to have the termostat automatically turn down after I had been away for a certain amount of time. The feature that is most unique to this project is the ability to predict/estimate how long the furnace might run for, given local weather data and the set schedule. This gives the user feedback as to whether the set schedule is efficient or not. All the data captured by the termostat is saved to an Influx DB running on a Raspberry Pi 4 through a Node-Red interface.
+At my duplex, I used to have a simple thermostat that used a mercury switch. I wanted to improve this by making a smart thermostat that could have a different schedule for each day of the week. As a college student at the time of creation, my schedule varied day by day. Another feature I wanted was to have the thermostat automatically turn down after I had been away for a certain amount of time. The feature that is most unique to this project is the ability to predict/estimate how long the furnace might run for, given local weather data and the set schedule. This gives the user feedback as to whether the set schedule is efficient or not. All the data captured by the thermostat is saved to an Influx DB running on a Raspberry Pi 4 through a Node-Red interface.
 
 ---
 ## Heating Model
-To provide the user with feedback on the schedule they have chosen for a given day, I created a model that will simulate how the thermostat might respond. The simulation takes in local weather data, the schedule for the day, and the starting temperature and calculates how long the furnace might run for. After tunning the model, I was able to achive estimates that were within 5 to 20 minutes of the actual runtime for that day. Typical days in the winter can have runtimes of over 3 hours.
+To provide the user with feedback on the schedule they have chosen for a given day, I created a model that will simulate how the thermostat might respond. The simulation takes in local weather data, the schedule for the day, and the starting temperature and calculates how long the furnace might run for. After tunning the model, I was able to achieve estimates that were within 5 to 20 minutes of the actual runtime for that day. Typical days in the winter can have runtimes of over 3 hours.
 Below is a screenshot of the simulated runtime.
 ![Prediction Graph](docs/images/prediction_graph.png)
 Below is a screenshot of the actual recorded data.
 ![Prediction Graph](docs/images/history_graph.png)
-A comprehensive explaination of the math can be found [here](docs/Heating-Model.ipynb). GitHub markdown does not allow for rendering of LaTex math equtions. Using a Jupyter notebook overcomes this problem. This also frees up this readme as the extensive explaination can be found there.
+A comprehensive explanation of the math can be found [here](docs/Heating-Model.ipynb). GitHub markdown does not allow for rendering of LaTex math equations. Using a Jupyter notebook overcomes this problem. This also frees up this readme as the extensive explanation can be found there.
 
 ---
 ## Cpp Model
@@ -229,15 +230,15 @@ Refer to the ```config-sample.json``` for the list of properties that can be set
   | --------- | --------- |
   | ```thermostat-hostname``` | Hostname that the server will look for on the network to obtain its IP address |
   | ```thermostat-hb-port``` | Thermostat port to receive heartbeat messages on |
-  | ```thermostat-listen-port``` | Thermostat listening port for udp messages  |
+  | ```thermostat-listen-port``` | Thermostat listening port for UDP messages  |
   | ```max-settable-temperature``` | The maximum settable temperature by the user |
   | ```min-settable-temperature``` | The minimum settable temperature by the user |
-  | ```api-key``` | The api key for the weather api service you are using |
-  | ```lat``` | Your lattitude in degrees |
+  | ```api-key``` | The API key for the weather API service you are using |
+  | ```lat``` | Your latitude in degrees |
   | ```lon``` | Your longitude in degrees |
   | ```use-cpp-sim``` | If the C++ simulation model should be used instead of the Python implementation |
   | ```debug-enabled``` | If the server should start up in debug mode. API weather queries will be loaded from archive files instead and debug statements will be logged |
-  | ```time-zone-from-gmt``` | hourst from GMT time zone |
+  | ```time-zone-from-gmt``` | hours from GMT time zone |
   | ```btu``` | BTU rating of furnace in thousands |
   | ```delta-time``` | Simulation time interval |
   | ```thresh-upper``` | Upper threshold for when the furnace should shut off |
@@ -246,6 +247,6 @@ Refer to the ```config-sample.json``` for the list of properties that can be set
   | ```k1``` | The wall insulation factor |
   | ```k2``` | The ceiling insulation factor |
   | ```k3``` | The roof insulation factor |
-  | ```f1``` | Factor for how much sunlight heat is transfered through to the walls |
-  | ```f2``` | Factor for how much sunlight heat is transfered through to the roof |
-  | ```rolling-avg-size``` | The heat capacity of the establisment. Larger numbers mean that the temperature inside will be more resistant to change by the furnace or the outside temperature. This is a way to simulate furnature, walls etc retaining heat (whether that is cooler or warmer than the current temperature) |
+  | ```f1``` | Factor for how much sunlight heat is transferred through to the walls |
+  | ```f2``` | Factor for how much sunlight heat is transferred through to the roof |
+  | ```rolling-avg-size``` | The heat capacity of the home. Larger numbers mean that the temperature inside will be more resistant to change by the furnace or the outside temperature. This is a way to simulate furniture, walls etc retaining heat (whether that is cooler or warmer than the current temperature) |
