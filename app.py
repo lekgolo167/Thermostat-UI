@@ -1,10 +1,13 @@
 
+from asyncio.log import logger
 import atexit
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, jsonify, request, redirect
 import time as cTime
 import json
 import logging
+
+from urllib3 import Retry
 
 from database import db, ma, db_cli, CyclesSchema, DayIDsSchema
 from modules.cyclesController import CyclesController
@@ -38,9 +41,12 @@ with open('config.json', 'r') as config_file:
 log_handler = RotatingFileHandler(filename='app.log', mode='a', maxBytes=5*1024*1024, backupCount=2)
 log_format = logging.Formatter('%(asctime)s %(levelname)s %(name)s-> %(message)s')
 log_handler.setFormatter(log_format)
-app_log = logging.getLogger('app')
+app_log = logging.getLogger('App')
 app_log.setLevel(LOG_LEVEL)
 app_log.addHandler(log_handler)
+thermostat_log = logging.getLogger('Thermostat')
+thermostat_log.setLevel(LOG_LEVEL)
+thermostat_log.addHandler(log_handler)
 
 cycles_controller = CyclesController('config.json', log_handler, LOG_LEVEL)
 simulation_controller = SimulationDayController('config.json', log_handler, LOG_LEVEL)
@@ -190,6 +196,19 @@ def simParams():
     simulation_controller.heating_model.set_values(request.form)
     update_simulation()
     return redirect('/')
+
+@app.route('/log', methods=['POST'])
+def log_it():
+    try:
+        level = logging.getLevelName(request.form['level'].upper())
+        msg = request.form['msg']
+        if type(level) is int:
+            thermostat_log.log(level=level, msg=msg)
+            return '', 200
+        else:
+            return 'Unknown log level.', 400
+    except Exception as e:
+        return str(e), 400
 
 def update_simulation(day=None):
     if day is None:
