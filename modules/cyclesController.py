@@ -157,7 +157,7 @@ class CyclesController():
 		for cycle in cycles:
 			db.session.delete(cycle)
 		
-		cycles = Cycle.query.filter_by(d=from_day.selected_day).all()
+		cycles = Cycle.query.filter_by(d=from_day).all()
 		# copy all cycles for that day
 		for cycle in cycles:
 			copied_cycle = Cycle(d=this_day,h=cycle.h,m=cycle.m,t=cycle.t)

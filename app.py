@@ -173,7 +173,7 @@ def copyDayTo():
             cycles_controller.copy_day_to(simulation_controller.selected_day, day)
             update_simulation(day)
 
-    return '{}'
+    return redirect('/')
 
 @app.route('/setDate', methods=['POST'])
 def setDate():
