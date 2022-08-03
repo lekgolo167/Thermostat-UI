@@ -216,12 +216,13 @@ def update_simulation(day=None):
     cycles = cycles_controller.get_cycles(day)
     simulation_controller.update_schedule(cycles, simulation_controller.days_data[day])
 
-def server_shutdown():
-    app_log.info('Server is shutting down...')
+def server_shutdown(reason):
+    app_log.info(f'Server is shutting down... {reason}')
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, server_shutdown)
-    atexit.register(server_shutdown)
+    signal.signal(signal.SIGTERM, lambda : server_shutdown('SIGTERM'))
+    signal.signal(signal.SIGSEGV, lambda : server_shutdown('SIGSEGV'))
+    atexit.register(lambda : server_shutdown('atexit'))
     app.before_first_request(startup)
     try:
         app.run(debug=DEBUG_ENABLED, host='0.0.0.0')
