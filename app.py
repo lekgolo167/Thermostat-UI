@@ -1,5 +1,5 @@
 
-from asyncio.log import logger
+import signal
 import atexit
 from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template, jsonify, request, redirect
@@ -220,6 +220,7 @@ def server_shutdown():
     app_log.info('Server is shutting down...')
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, server_shutdown)
     atexit.register(server_shutdown)
     app.before_first_request(startup)
     try:
