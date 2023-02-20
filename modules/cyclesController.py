@@ -142,6 +142,7 @@ class CyclesController():
 			return False, CyclesController._MSG_UNEDITABLE, 400
 		try:
 			db.session.add(new_cycle)
+			self._update_day_ids(day)
 			db.session.commit()
 			self.logger.info(CyclesController._MSG_CREATED_CYCLE)
 			self.logger.debug(new_cycle)
@@ -162,6 +163,7 @@ class CyclesController():
 		for cycle in cycles:
 			copied_cycle = Cycle(d=this_day,h=cycle.h,m=cycle.m,t=cycle.t)
 			db.session.add(copied_cycle)
-
+		
+		self._update_day_ids(this_day)
 		# save and update
 		db.session.commit()
