@@ -172,7 +172,7 @@ def copyDayTo():
         if checked:
             cycles_controller.copy_day_to(simulation_controller.selected_day, day)
             update_simulation(day)
-
+    connection_manager.updatedSchedule()
     return redirect('/')
 
 @app.route('/setDate', methods=['POST'])
