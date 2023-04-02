@@ -2,6 +2,11 @@ import json
 import logging
 from logging import Handler
 from collections import deque
+try:
+	from modules.simulation_cpp import simulation
+except:
+	print('WARNING: No CPP simulation library found!')
+
 
 class HeatingModel():
 	def __init__(self, config_file_path: str, log_handler: Handler, log_level: int | str) -> None:
@@ -29,6 +34,10 @@ class HeatingModel():
 		self.logger.debug(f'Loading from config file: {config_file_path}')
 		with open(config_file_path, 'r') as config_file:
 			config_obj = json.loads(config_file.read())
+			if config_obj.get('use-cpp-sim', False):
+				self.simulate = simulation.simulate_using_cpp
+			else:
+				self.simulate = self.simulate_using_py
 			return config_obj
 
 	def set_values(self, vals: dict[str, int | float]) -> None:
@@ -76,7 +85,7 @@ class HeatingModel():
 		else:
 			return (0.0, False)
 
-	def simulate(self, start_temperature: float, sched: list[tuple[float, float]], outsideTemperature: list[float], uvIndex: list[float]) -> tuple[list[tuple[float, float]], float]:
+	def simulate_using_py(self, start_temperature: float, sched: list[tuple[float, float]], outsideTemperature: list[float], uvIndex: list[float]) -> tuple[list[tuple[float, float]], float]:
 		# time of day in hours
 		time_hr = 0.0
 		# if the furnace is on

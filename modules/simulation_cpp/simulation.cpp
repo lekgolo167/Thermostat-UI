@@ -123,5 +123,5 @@ tuple simulate(double start_temperature, list sched, list weather_t, list uv_ind
 
 BOOST_PYTHON_MODULE(simulation)
 {
-		def("simulate", simulate);
+		def("simulate_using_cpp", simulate);
 }

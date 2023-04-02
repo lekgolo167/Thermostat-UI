@@ -7,10 +7,7 @@ from datetime import datetime, timedelta, date
 
 from database import Cycle
 from modules.heatingModel import HeatingModel
-try:
-	from modules.simulation_cpp import simulation
-except:
-	pass
+
 
 class SimulationDayController():
 	def __init__(self, config_file_path: str, log_handler: Handler, log_level: int | str) -> None:
@@ -59,10 +56,7 @@ class SimulationDayController():
 			self.apiKey = config_obj.get('api-key', 'null')
 			self.lat = str(config_obj.get('lat', 0.0))
 			self.lon = str(config_obj.get('lon', 0.0))
-			# if config_obj.get('use-cpp-sim', False):
-			# 	self.simulate = simulation.simulate
-			# else:
-			# 	self.simulate = simulate
+
 			if config_obj.get('debug-enabled', False):
 				self.get_weather = self._weather_data_from_file
 				self.get_forecast = self._get_weather_forecast_from_file
