@@ -35,7 +35,7 @@ class HeatingModel():
 		with open(config_file_path, 'r') as config_file:
 			config_obj = json.loads(config_file.read())
 			if config_obj.get('use-cpp-sim', False):
-				self.simulate = simulation.simulate_using_cpp
+				self.simulate = lambda *args: simulation.simulate_using_cpp(*args, self.get_values())
 			else:
 				self.simulate = self.simulate_using_py
 			return config_obj
