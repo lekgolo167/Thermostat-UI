@@ -84,7 +84,7 @@ def plot():
 @app.route('/getForecast', methods=['GET'])
 def getForecast():
     app_log.info('Fetching weather forecast')
-    return simulation_controller._get_weather_forecast()
+    return simulation_controller.get_forecast()
 
 @app.route('/getCycles/<int:day>', methods=['GET'])
 def getCycles(day):
