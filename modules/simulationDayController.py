@@ -188,10 +188,10 @@ class SimulationDayController():
 			return self._format_weather_forecast(data), 200
 
 	def _get_weather_forecast(self) -> str:
-		last_request_hrs:timedelta = datetime.today() - self.last_forecast_update
-		if last_request_hrs.seconds < 3600*12 and last_request_hrs.days == 0:
+		last_request_date:timedelta = datetime.today() - self.last_forecast_update
+		if last_request_date.seconds < 3600*12 and last_request_date.days == 0:
 			return '{"message":"Only 1 call allowed every 12 hours!"}', 409
-
+		self.last_forecast_update = datetime.today()
 		r = requests.get(url=self.forecast_url.format(self.lat, self.lon, self.apiKey))
 		if r.status_code >= 400:
 			self.logger.error(f'Forecast API HTTP status code ({r.status_code})')
