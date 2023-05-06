@@ -1,0 +1,27 @@
+{
+    "lat": 0,
+    "lon": 0,
+    "timezone": "",
+    "timezone_offset": 0,
+    "data": [{
+        "dt": 1675166400,
+        "sunrise": 1675176046,
+        "sunset": 1675212044,
+        "temp": -17.09,
+        "feels_like": -17.09,
+        "pressure": 1031,
+        "humidity": 77,
+        "dew_point": -21.66,
+        "clouds": 75,
+        "visibility": 10000,
+        "wind_speed": 0,
+        "wind_deg": 0,
+        "wind_gust": 0,
+        "weather": [{
+            "id": 803,
+            "main": "Clouds",
+            "description": "broken clouds",
+            "icon": "04n"
+        }]
+    }]
+}

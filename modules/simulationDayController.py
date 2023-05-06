@@ -17,6 +17,7 @@ class SimulationDayController():
 		self.apiKey = None
 		self.lat = None
 		self.lon = None
+		self.wind_speed_warning = None
 		self.get_weather = None
 		self.get_forecast = None
 		self.heating_model = HeatingModel(config_file_path, log_handler, log_level)
@@ -26,19 +27,28 @@ class SimulationDayController():
 		self.load_config(config_file_path)
 		self.weather_icons_dict = {
 			'none': -1,
-			'clear-day': 0,
-			'clear-night': 1,
-			'rain': 2,
-			'snow': 3,
-			'sleet': 4,
-			'wind': 5,
-			'fog': 6,
-			'cloudy': 7,
-			'partly-cloudy-day': 8,
-			'partly-cloudy-night': 9,
-			'thuderstorm': 10,
-			'hail': 11
+			'01d': 0, # clear-day
+			'01n': 1, # clear-night
+			'02d': 2, # partly cloudy day/few clouds
+			'02n': 3, # partly cloudy night/few clouds
+			'03d': 4, # scattered clouds day
+			'03n': 5, # scattered clouds night
+			'04d': 6, # cloudy day
+			'04n': 7, # cloudy night
+			'09d': 8, # shower rain
+			'09n': 8, # shower rain
+			'10d': 9, # rain day
+			'10n': 10, # rain night
+			'11d': 11, # thuderstorm
+			'11n': 11, # thuderstorm
+			'13d': 12, # snow
+			'13n': 12, # snow
+			'50d': 13, # mist/fog day
+			'50n': 14, # mist/fog night
+			'sleet': 15,
+			'wind': 16,
 		}
+		self.forecast_url = 'https://api.openweathermap.org/data/3.0/onecall?lat={0}&lon={1}&appid={2}&units=imperial&exclude=current,minutely'
 	
 	def init(self, get_cycles: callable) -> None:
 		today = date.today().strftime('%Y-%m-%d')
@@ -56,12 +66,13 @@ class SimulationDayController():
 			self.apiKey = config_obj.get('api-key', 'null')
 			self.lat = str(config_obj.get('lat', 0.0))
 			self.lon = str(config_obj.get('lon', 0.0))
+			self.wind_speed_warning = float(config_obj.get('wind-advisory', 100.0))
 
 			if config_obj.get('debug-enabled', False):
 				self.get_weather = self._weather_data_from_file
 				self.get_forecast = self._get_weather_forecast_from_file
 			else:
-				self.get_weather = self._get_weather_data
+				self.get_weather = self._weather_data_from_file #self._get_weather_data TODO rewrite this with Open Weather Map API
 				self.get_forecast = self._get_weather_forecast
 
 	def get_day(self) -> 'DayData':
@@ -165,38 +176,57 @@ class SimulationDayController():
 		timestamp = str(h).zfill(2) + ':' + str(m).zfill(2)
 		day.g_inside_temperatures.append({'x': timestamp, 'y': inside_t})
 
-	def _format_forecast_data(self, data: dict[str, any]) -> str:
-		parsed_dict = {}
+	def _get_weather_forecast_from_file(self) -> str:
+		filename = f'archive/3-0-current.json'
+		self.logger.debug(f'Loading weather forecast from file: {filename}')
+
+		with open(filename, 'r') as infile:
+			text = infile.read()
+			data = json.loads(text)
+			
+			return self._format_weather_forecast(data)
+
+	def _get_weather_forecast(self) -> str:
+
+		r = requests.get(url=self.forecast_url.format(self.lat, self.lon, self.apiKey))
+		if r.status_code >= 400:
+			self.logger.error(f'Forecast API HTTP status code ({r.status_code})')
+			return self._get_weather_forecast_from_file()
+		data = json.loads(r.text)
+
+		return self._format_weather_forecast(data)
+
+	def _format_weather_forecast(self, forecast: dict[str, any]) -> str:
 		hourly = []
 		hour = 0
-		for hourlyData in data['hourly']['data']:
+		for hourlyData in forecast['hourly']:
 			icon = None
 			try:
-				icon = self.weather_icons_dict[hourlyData['icon']]
+				if hourlyData['wind_speed'] > self.wind_speed_warning:
+					icon = self.weather_icons_dict['wind']
+				else:
+					icon = self.weather_icons_dict[hourlyData['weather'][0]['icon']]
 			except KeyError:
-				logging.error(f'Hourly weather icon not found for hour: {hour}')
+				self.logger.error(f'Hourly weather icon not found for hour: {hour}')
 				icon = self.weather_icons_dict['none']
 
-			temperature = int(hourlyData['temperature'])
+			temperature = int(hourlyData['temp'])
 			hourly.append({'i':icon, 't':temperature})
 			hour += 1
 			if hour >= 25:
 				break
 
-		hr = datetime.today().hour
-		hourly = hourly[25-hr:] + hourly[:25-hr]
-
 		daily = []
 		day = datetime.today().weekday()+1
-		for forecast in data['daily']['data'][:4]:
+		for fdaily in forecast['daily'][:4]:
 			icon = None
 			try:
-				icon = self.weather_icons_dict[forecast['icon']]
+				icon = self.weather_icons_dict[fdaily['weather'][0]['icon']]
 			except KeyError:
-				logging.error(f'Daily weather icon not found for day: {day}')
+				print(f'Daily weather icon not found for day: {day}')
 				icon = self.weather_icons_dict['none']
-			tHigh = int(forecast['temperatureHigh'])
-			tLow =  int(forecast['temperatureLow'])
+			tHigh = int(fdaily['temp']['max'])
+			tLow =  int(fdaily['temp']['min'])
 			if day == 7:
 				day = 0
 			daily.append({'d':day,'i':icon, 'H':tHigh, 'L':tLow})
@@ -206,27 +236,6 @@ class SimulationDayController():
 		json_data = json.dumps(parsed_dict)
 
 		return json_data
-
-	def _get_weather_forecast_from_file(self) -> str:
-		filename = f'archive/forecast.json'
-		self.logger.debug(f'Loading weather forecast from file: {filename}')
-
-		with open(filename, 'r') as infile:
-			text = infile.read()
-			data = json.loads(text)
-			
-			return self._format_forecast_data(data)
-
-	def _get_weather_forecast(self) -> str:
-		self.logger.debug(f'Fetching weather forecast')
-
-		URL = 'https://api.darksky.net/forecast/'+ self.apiKey + '/' + self.lat + ',' + self.lon + '?exclude=currently,minutely,alerts,flags'
-
-		r = requests.get(url=URL)
-
-		data = json.loads(r.text)
-
-		return self._format_forecast_data(data)
 
 	def _format_weather_data(self, hourlyData: list[dict[str, any]]) -> tuple[list[float], list[float]]:
 
