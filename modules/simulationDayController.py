@@ -20,6 +20,7 @@ class SimulationDayController():
 		self.wind_speed_warning = None
 		self.get_weather = None
 		self.get_forecast = None
+		self.last_forecast_update = datetime.today() - timedelta(days=1)
 		self.heating_model = HeatingModel(config_file_path, log_handler, log_level)
 		self.days_data = [DayData(d) for d in range(8)]
 		self.selected_day = 1
@@ -184,9 +185,12 @@ class SimulationDayController():
 			text = infile.read()
 			data = json.loads(text)
 			
-			return self._format_weather_forecast(data)
+			return self._format_weather_forecast(data), 200
 
 	def _get_weather_forecast(self) -> str:
+		last_request_hrs:timedelta = datetime.today() - self.last_forecast_update
+		if last_request_hrs.seconds < 3600*12 and last_request_hrs.days == 0:
+			return '{"message":"Only 1 call allowed every 12 hours!"}', 409
 
 		r = requests.get(url=self.forecast_url.format(self.lat, self.lon, self.apiKey))
 		if r.status_code >= 400:
@@ -194,7 +198,7 @@ class SimulationDayController():
 			return self._get_weather_forecast_from_file()
 		data = json.loads(r.text)
 
-		return self._format_weather_forecast(data)
+		return self._format_weather_forecast(data), 200
 
 	def _format_weather_forecast(self, forecast: dict[str, any]) -> str:
 		hourly = []
